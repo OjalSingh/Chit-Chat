@@ -2,7 +2,12 @@ import jwt from 'jsonwebtoken'; // Import the jsonwebtoken library for generatin
 
 // Function to generate a JWT token for a user
 export const generateToken = (userId, res) => {
-    const token = jwt.sign({ userId }, process.env.JWT_SECRET, { 
+    const { JWT_SECRET } = process.env;
+    if (!JWT_SECRET) {
+        throw new Error("JWT_SECRET is not defined in the environment variables");
+    }
+
+    const token = jwt.sign({ userId }, JWT_SECRET, { 
         expiresIn: '7d' }); // Generate a token with the user's ID, secret key, and expiration time of 7 days
     res.cookie('jwt', token, {
         maxAge: 7 * 24 * 60 * 60 * 1000,    //ms

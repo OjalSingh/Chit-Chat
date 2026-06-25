@@ -38,6 +38,7 @@ export const signup = async  (req, res) => {
         });
 
         if (newUser) {
+            const savedUser = await newUser.save(); // Save the new user to the database
             generateToken(newUser.id, res); // Generate a token for the new user and send it in the response
             await newUser.save();
 
