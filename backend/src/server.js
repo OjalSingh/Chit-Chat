@@ -12,7 +12,7 @@ dotenv.config(); // Load environment variables from .env file
 const app = express(); // Create an instance of the Express application
 const PORT = process.env.PORT || 3000; // Get the port from environment variables or default to 3000
 
-app.use(express.json()); // Middleware to parse JSON request bodies
+app.use(express.json({ limit: "5MB" })); // Middleware to parse JSON request bodies, increasing the payload limit from 500kb to 5MB
 app.use(cookieParser()); // Middleware to parse cookies from incoming requests
 
 
