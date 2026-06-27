@@ -1,4 +1,5 @@
 import express from 'express'; // Import the Express library
+import cookieParser from 'cookie-parser'; // Import the cookie-parser middleware
 import dotenv from 'dotenv'; // Import the dotenv library to load environment variables
 import authRoutes from './routes/auth.route.js'; // Import the auth routes
 import messageRoutes from './routes/message.route.js'; // Import the message routes
@@ -12,6 +13,7 @@ const app = express(); // Create an instance of the Express application
 const PORT = process.env.PORT || 3000; // Get the port from environment variables or default to 3000
 
 app.use(express.json()); // Middleware to parse JSON request bodies
+app.use(cookieParser()); // Middleware to parse cookies from incoming requests
 
 
 app.use("/api/auth", authRoutes); // Use the auth routes for routes starting with /api/auth
