@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import MessageInput from "../components/MessageInput";
 import  Sidebar  from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
+import { socket } from "../api/socket";
 
 
 function Chat() {
@@ -36,16 +37,48 @@ function Chat() {
     const [newMessage, setNewMessage] = useState("");
 
     useEffect(() => {
-        loadCurrentUser();
-        loadFriends();
+    loadCurrentUser();
+    loadFriends();
     }, []);
+
     useEffect(() => {
         console.log("Friends state:", friends);
     }, [friends]);
 
+    /*
+     * Listen for messages pushed by the backend.
+     * Whenever another user sends us a message,
+     * the backend emits a "newMessage" event.
+     */
+    useEffect(() => {
+
+        socket.on("newMessage", (message) => {
+
+            /*
+             * Add the incoming message to the current
+             * conversation without making another HTTP request.
+             */
+            setMessages((prev) => [...prev, message]);
+        });
+
+        /*
+         * Remove the listener when this component unmounts.
+         * Prevents duplicate listeners if the user leaves
+         * and returns to the chat page.
+         */
+        return () => {
+            socket.off("newMessage");
+        };
+
+    }, []);
+
     const handleLogout = async () => {
         try {
+            socket.disconnect();
+
             await logout();
+
+            navigate("/login");
 
             // After clearing the JWT cookie,
             // send the user back to the login page.
