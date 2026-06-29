@@ -4,7 +4,7 @@ import { verify } from "../api/auth";
 import { logout } from "../api/auth";
 import { useNavigate } from "react-router-dom";
 import MessageInput from "../components/MessageInput";
-import  Sidebar  from "../components/Sidebar";
+import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
 import { socket } from "../api/socket";
 
@@ -35,10 +35,21 @@ function Chat() {
     const [error, setError] = useState("");
     const navigate = useNavigate();
     const [newMessage, setNewMessage] = useState("");
+    /*
+ * Stores the IDs of users currently connected to the
+ * Socket.IO server.
+ *
+ * Example:
+ * [
+ *   "6a40f83c13c82c13a154ce3e",
+ *   "6a3f9dcf5bdf63a1c387d89d"
+ * ]
+ */
+    const [onlineUsers, setOnlineUsers] = useState([]);
 
     useEffect(() => {
-    loadCurrentUser();
-    loadFriends();
+        loadCurrentUser();
+        loadFriends();
     }, []);
 
     useEffect(() => {
@@ -71,14 +82,47 @@ function Chat() {
         };
 
     }, []);
+    useEffect(() => {
+        /*
+         * Ensure a socket connection exists whenever the
+         * chat page is opened.
+         */
+        if (!socket.connected) {
+            socket.connect();
+        }
+
+        socket.on("connect", () => {
+            console.log("Connected:", socket.id);
+        });
+
+        return () => {
+            /*
+             * Disconnect when leaving the chat page.
+             */
+            socket.disconnect();
+        };
+    }, []);
+
+    /*
+    * Listen for updates whenever users connect
+    *or disconnect.
+    */
+    useEffect(() => {
+        socket.on("getOnlineUsers", (users) => {
+            console.log("ONLINE USERS EVENT:", users);
+            setOnlineUsers(users);
+        });
+
+        return () => {
+            socket.off("getOnlineUsers");
+        };
+    }, []);
 
     const handleLogout = async () => {
         try {
             socket.disconnect();
 
             await logout();
-
-            navigate("/login");
 
             // After clearing the JWT cookie,
             // send the user back to the login page.
@@ -206,6 +250,7 @@ function Chat() {
             <Sidebar
                 friends={friends}
                 selectedUser={selectedUser}
+                onlineUsers={onlineUsers}
                 onSelectFriend={(friend) => {
                     setSelectedUser(friend);
                     loadMessages(friend._id);
@@ -229,7 +274,7 @@ function Chat() {
             />
 
 
-                <hr />
+            <hr />
             <button onClick={handleLogout}>
                 Logout
             </button>
@@ -240,134 +285,3 @@ function Chat() {
 
 export default Chat;
 
-//  <h2>Friends</h2>
-
-//             {friends.length === 0 ? (
-//                 <p>No users found.</p>
-//             ) : (
-//                 friends.map((friend) => {
-
-//                     /*
-//                      * Compare the current friend with the selected
-//                      * conversation so we can highlight it.
-//                      */
-//                     const isSelected =
-//                         selectedUser?._id === friend._id;
-
-//                     return (
-//                         <div
-//                             key={friend._id}
-//                             onClick={() => {
-//                                 setSelectedUser(friend);
-//                                 loadMessages(friend._id);
-//                             }}
-//                             style={{
-//                                 border: isSelected
-//                                     ? "2px solid blue"
-//                                     : "1px solid gray",
-
-//                                 backgroundColor: isSelected
-//                                     ? "#dbeafe"
-//                                     : "white",
-
-//                                 padding: "10px",
-//                                 marginBottom: "8px",
-//                                 cursor: "pointer",
-
-//                                 /*
-//                                  * Small transition makes selection feel nicer
-//                                  * without adding any real styling complexity.
-//                                  */
-//                                 transition: "0.2s",
-//                             }}
-//                         >
-//                             <strong>{friend.username}</strong>
-
-//                             <br />
-
-//                             {friend.email}
-//                         </div>
-//                     );
-//                 })
-//             )}
-
-//             <hr />
-
-//             <h2>Conversation</h2>
-
-//             {selectedUser ? (
-//                 <>
-//                     <p>
-//                         Chatting with <strong>{selectedUser.username}</strong>
-//                     </p>
-
-//                     {messages.length === 0 ? (
-//                         <p>No messages yet.</p>
-//                     ) : (
-//                         messages.map((message) => {
-
-//                             const isMine =
-//                                 currentUser &&
-//                                 message.senderId === currentUser._id;
-
-//                             return (
-//                                 <div
-//                                     key={message._id}
-//                                     style={{
-//                                         border: "1px solid gray",
-//                                         padding: "8px",
-//                                         marginBottom: "8px",
-
-//                                         /*
-//                                          * For now we simply align messages differently.
-//                                          * Later Socket.IO and CSS can improve this.
-//                                          */
-//                                         textAlign: isMine ? "right" : "left",
-//                                     }}
-//                                 >
-//                                     <strong>
-//                                         {isMine ? "You" : selectedUser.username}
-//                                     </strong>
-
-//                                     <br />
-
-//                                     {message.text}
-//                                 </div>
-//                             );
-//                         })
-//                     )}
-//                 </>
-//             ) : (
-//                 <p>Select a friend.</p>
-//             )}
-
-//             <hr />
-
-//             <h2>New Message</h2>
-
-//             <input
-//                 type="text"
-//                 value={newMessage}
-//                 onChange={(e) => setNewMessage(e.target.value)}
-
-//                 /*
-//                 * Pressing Enter provides the same behavior
-//                 * as clicking the Send button.
-//                 */
-//                 onKeyDown={(e) => {
-//                     if (e.key === "Enter") {
-//                         handleSendMessage();
-//                     }
-//                 }}
-
-//                 placeholder="Type a message..."
-//                 style={{
-//                     width: "300px",
-//                 }}
-//             />
-
-//             <button
-//                 onClick={handleSendMessage}
-//             >
-//                 Send
-//             </button>

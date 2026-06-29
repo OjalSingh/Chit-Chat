@@ -49,7 +49,7 @@ function Login() {
 
             console.log(loggedInUser);
 
-            socket.connect();
+            
 
             navigate("/chat");
 

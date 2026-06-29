@@ -2,13 +2,14 @@ function Sidebar({
     friends,
     selectedUser,
     onSelectFriend,
+    onlineUsers,
 }) {
     return (
         <div style={{ width: "250px" }}>
 
-             <h2>Friends</h2>
+            <h2>Friends</h2>
 
-             {friends.length === 0 ? (
+            {friends.length === 0 ? (
                 <p>No users found.</p>
             ) : (
                 friends.map((friend) => {
@@ -19,7 +20,8 @@ function Sidebar({
                      */
                     const isSelected =
                         selectedUser?._id === friend._id;
-
+                    const isOnline =
+                        onlineUsers.includes(friend._id);
                     return (
                         <div
                             key={friend._id}
@@ -36,15 +38,30 @@ function Sidebar({
                                 padding: "10px",
                                 marginBottom: "8px",
                                 cursor: "pointer",
-
-                                /*
-                                 * Small transition makes selection feel nicer
-                                 * without adding any real styling complexity.
-                                 */
                                 transition: "0.2s",
                             }}
                         >
-                            <strong>{friend.username}</strong>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        width: "10px",
+                                        height: "10px",
+                                        borderRadius: "50%",
+
+                                        backgroundColor: isOnline
+                                            ? "#22c55e"
+                                            : "#9ca3af",
+                                    }}
+                                />
+
+                                <strong>{friend.username}</strong>
+                            </div>
 
                             <br />
 
@@ -60,4 +77,3 @@ function Sidebar({
 
 export default Sidebar;
 
-            
