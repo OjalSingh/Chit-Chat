@@ -7,4 +7,5 @@ export const ENV = {
     NODE_ENV: process.env.NODE_ENV, // Get the Node environment from environment variables or default to 'development'
     ARCJET_KEY: process.env.ARCJET_KEY, // Get the Arcjet key from environment variables
     ARCJET_ENV: process.env.ARCJET_ENV, // Get the Arcjet environment from environment variables or default to 'development'
+    CLIENT_URL: process.env.CLIENT_URL,
 };

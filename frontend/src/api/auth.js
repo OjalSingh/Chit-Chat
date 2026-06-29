@@ -19,3 +19,4 @@ export const verify = async () => {
     const res = await client.get("/auth/verify");
     return res.data;
 };
+

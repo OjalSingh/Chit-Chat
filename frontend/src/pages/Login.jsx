@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { login } from "../api/auth";
+import { socket } from "../api/socket";
 
 function Login() {
     const navigate = useNavigate();
@@ -46,11 +47,13 @@ function Login() {
              */
             const loggedInUser = await login(formData);
 
-            // Useful while developing.
-            // Remove this once authentication is verified.
             console.log(loggedInUser);
 
+            socket.connect();
+
             navigate("/chat");
+
+
         } catch (err) {
             setError(
                 err.response?.data?.message || "Unable to login."

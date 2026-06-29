@@ -1,5 +1,6 @@
 import Message from "../models/Message.js"
 import User from "../models/User.js"
+import { io, getReceiverSocketId } from "../lib/socket.js";
 
 
 export const getAllFriends = async (req, res) => {
@@ -67,7 +68,15 @@ export const sendMessage = async (req, res) => {
 
         await newMessage.save();
 
-        //todo: send irt if online
+        /*
+         * Check whether the receiver currently has an active
+         * Socket.IO connection.
+         */
+        const receiverSocketId = getReceiverSocketId(receiverId);
+
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("newMessage", newMessage);
+        }
 
         res.status(201).json(newMessage);
 
