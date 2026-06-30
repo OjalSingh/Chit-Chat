@@ -3,7 +3,6 @@
 > **A backend-first real-time messaging platform demonstrating scalable hybrid REST + WebSocket architecture, secure authentication, and event-driven state synchronization.**
 
 ---
-# Table of Contents
 
 # Table of Contents
 
@@ -238,15 +237,12 @@ Persistent operations such as authentication, friend management, and messaging a
 
 This separation establishes REST as the authoritative source of truth while WebSockets remain responsible solely for UI synchronization.
 
----
-
 ## Why MongoDB?
 
 MongoDB's document model naturally represents users, friendships, and conversations while allowing flexible schema evolution as new features are introduced.
 
 ObjectId references are used to model relationships, with population performed only when necessary to reduce unnecessary data transfer.
 
----
 
 ## Why a Separate FriendRequest Collection?
 
@@ -259,7 +255,6 @@ This approach:
 - Supports clear request lifecycles (Pending → Accepted/Rejected).
 - Makes future features such as request history and expiration easier to implement.
 
----
 
 ## Why Socket Authentication?
 
@@ -267,7 +262,6 @@ Both REST endpoints and Socket.IO connections share the same authentication mode
 
 Every socket connection passes through authentication middleware before joining the application, ensuring only verified users can receive presence updates, notifications, and live messages.
 
----
 
 ## Why Maintain a Server-side Socket Registry?
 
