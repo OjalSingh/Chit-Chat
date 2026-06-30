@@ -674,11 +674,13 @@ User
 - Population is performed only when required, reducing unnecessary document size.
 
 ## FriendRequest
+```text
 FriendRequest
 ├── sender
 ├── receiver
 ├── status
-├── createdAt
+└── createdAt
+```
 
 
 ### Significance
@@ -690,12 +692,14 @@ Instead of embedding pending requests inside the User document, friend requests 
 - clean lifecycle (pending → accepted/rejected)
 
 ## Message
+```text
 Message
 ├── senderId
 ├── receiverId
 ├── text
 ├── image
-├── createdAt
+└── createdAt
+```
 
 ### Significance
 
