@@ -22,7 +22,7 @@ const aj = arcjet({
     
     slidingWindow({
       mode: "LIVE",
-      max: 20, // Max 20 requests per interval
+      max: 300, // Max 300 requests per interval
       // Tracked by IP address by default, but this can be customized
       //characteristics: ["ip.src"],
       interval: 60, // Refill every 60 seconds

@@ -57,28 +57,24 @@ function Chat() {
      * the backend emits a "newMessage" event.
      */
     useEffect(() => {
+    const handleNewMessage = (message) => {
 
-        socket.on("newMessage", (message) => {
-            if (!selectedUser) return;
+        if (!selectedUser) return;
 
-            const belongsToConversation =
-                message.senderId === selectedUser._id ||
-                message.sender === selectedUser._id;
+        const belongsToConversation =
+            message.senderId === selectedUser._id ||
+            message.receiverId === selectedUser._id;
 
-            if (belongsToConversation) {
-                setMessages((prev) => [...prev, message]);
-            }
-        });
-        /*
-         * Remove the listener when this component unmounts.
-         * Prevents duplicate listeners if the user leaves
-         * and returns to the chat page.
-         */
-        return () => {
-            socket.off("newMessage");
-        };
+        if (belongsToConversation) {
+            setMessages(prev => [...prev, message]);
+        }
+    };
 
-    }, []);
+    socket.on("newMessage", handleNewMessage);
+
+    return () => socket.off("newMessage", handleNewMessage);
+
+}, [selectedUser]);
     useEffect(() => {
         /*
          * Ensure a socket connection exists whenever the
