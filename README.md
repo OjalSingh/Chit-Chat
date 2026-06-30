@@ -293,6 +293,140 @@ without requiring unnecessary database lookups for every event.
 
 # System Event Flow
 
+## Authentication & Live Presence
+```text
+User
+
+│
+│ Login / Signup
+▼
+
+POST /auth/login
+or
+POST /auth/signup
+
+│
+▼
+
+Backend Authentication
+
+• Credentials validated
+• JWT/Cookie issued
+• Session established
+
+│
+▼
+
+Frontend opens
+Socket.IO connection
+
+│
+▼
+
+Socket Authentication Middleware
+
+• Verify authenticated user
+• Reject unauthorized sockets
+
+│
+▼
+
+Store Connection
+
+userSocketMap
+
+User ID → Socket ID
+
+│
+▼
+
+Broadcast
+
+getOnlineUsers
+
+│
+▼
+
+All Connected Clients
+
+Online indicators update
+
+(No refresh required)
+```
+
+## Real-Time Messaging
+```text
+User A
+
+│
+│ Click "Send"
+▼
+
+POST /messages/send/:id
+
+│
+▼
+
+Backend Validation
+
+• Authenticated user
+• Receiver exists
+• Message not empty
+
+│
+▼
+
+MongoDB
+
+Persist Message
+
+│
+▼
+
+Successful Database Commit
+
+│
+▼
+
+Lookup receiver socket
+
+userSocketMap
+
+│
+▼
+
+Socket.IO
+
+Emit:
+
+newMessage
+
+│
+▼
+
+User B
+
+Receive event
+
+│
+▼
+
+Current conversation?
+
+├── Yes
+│     │
+│     ▼
+│  Append message instantly
+│
+└── No
+      │
+      ▼
+   Ignore until
+   conversation opened
+
+(No refresh required)
+```
+
 ## Friend Request Lifecycle
 
 ```text
@@ -354,59 +488,54 @@ Instant UI update
 
 ---
 
-# Presence Flow
-
-```text
-Client Connects
-
-↓
-
-Socket Authentication
-
-↓
-
-Store
-
-userId → socketId
-
-↓
-
-Broadcast
-
-getOnlineUsers
-
-↓
-
-All clients update
-presence indicators
-```
-
----
-
 # Project Structure
 
 ```text
 backend/
 └──src
     ├── controllers/
+    |       ├── friend.controller.js
+    |       ├── auth.controller.js
+    |       └── message.controller.js
     ├── middleware/
+    |       ├── arcjet.auth.middleware.js
+    |       ├── auth.middleware.js
+    |       └── socket.auth.middleware.js
     ├── models/
+    |       ├── FriendRequest.js
+    |       ├── Message.js
+    |       └── User.js
     ├── routes/
+    |       ├── auth.route.js
+    |       ├── friend.route.js
+    |       └── messages.route.js
     ├── lib/
     │     ├── socket.js
     │     ├── env.js
     │     ├── arcjet.js
     │     ├── utils.js
     │     └── db.js
-    ├── app.js
     └── server.js
 
 frontend/
-├── components/
-├── pages/
-├── api/
-├── hooks/
-└── App.jsx
+└──src
+    ├── controllers/
+    |       ├── ChatWindow.jsx
+    |       ├── FriendRequest.jsx
+    |       ├── MessageInput.jsx
+    |       ├── Sidebar.jsx
+    |       └──  SearchUser.jsx
+    ├── pages/
+    |       ├── Chat.jsx
+    |       ├── Login.jsx
+    |       └──  Signup.jsx
+    ├── api/
+    |       ├── auth.js
+    |       ├── client.js
+    |       ├── friends.js
+    |       ├── messages.js
+    |       ├── socket.js
+    └── app.jsx
 ```
 
 The project follows clear separation between:
