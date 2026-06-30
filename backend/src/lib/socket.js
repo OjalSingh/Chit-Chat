@@ -17,7 +17,7 @@ const io = new Server(server, {
 io.use(socketAuthMiddleware);
 
 // this is for storing online users
-const userSocketMap ={}; // key-val pairs {userId:socketId}
+const userSocketMap = {}; // key-val pairs {userId:socketId}
 
 io.on("connection", (socket) => {
     console.log("A user connected", socket.user.username)
@@ -28,22 +28,44 @@ io.on("connection", (socket) => {
     //io.emit is used to send events to all connected clients
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
-    //socket.on to listent
-    socket.on("disconnect", () => {
-        console.log("A user disconnected", socket.user.username);
-        delete userSocketMap[userId];
-        io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    //Handle friend request sending
+    socket.on("sendFriendRequest", ({ receiverId, request }) => {
+        const receiverSocketId = userSocketMap[receiverId];
+
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit(
+                "friendRequestReceived",
+                request
+            );
+        }
     });
-});
+
+    socket.on("friendRequestUpdated", ({ receiverId }) => {
+        const receiverSocketId = userSocketMap[receiverId];
+
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit(
+                "friendRequestUpdated"
+                );
+            }
+        });
+
+        //socket.on to listen
+        socket.on("disconnect", () => {
+                console.log("A user disconnected", socket.user.username);
+                delete userSocketMap[userId];
+                io.emit("getOnlineUsers", Object.keys(userSocketMap));
+            });
+        });
 
 
-/*
- * Returns the Socket.IO socket ID associated with a user.
- * Message controllers use this to determine whether the
- * recipient is currently online before emitting events.
- */
-export const getReceiverSocketId = (userId) => {
-    return userSocketMap[userId];
-};
+        /*
+         * Returns the Socket.IO socket ID associated with a user.
+         * Message controllers use this to determine whether the
+         * recipient is currently online before emitting events.
+         */
+        export const getReceiverSocketId = (userId) => {
+            return userSocketMap[userId];
+        };
 
-export {io, app, server}
+        export { io, app, server }

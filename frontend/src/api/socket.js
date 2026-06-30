@@ -10,10 +10,7 @@ export const socket = io("http://localhost:3000", {
     autoConnect: false,
 });
 
-/*
- * Development-only logging to verify the socket
- * lifecycle and make debugging easier.
- */
+// logging to verify the socket lifecycle
 socket.on("connect", () => {
     console.log("Socket connected:", socket.id);
 });

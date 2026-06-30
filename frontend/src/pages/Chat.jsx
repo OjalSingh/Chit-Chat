@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { getFriends, getMessages, sendMessage, } from "../api/messages";
-import { verify } from "../api/auth";
-import { logout } from "../api/auth";
-import { useNavigate } from "react-router-dom";
+import { getMessages, sendMessage, } from "../api/messages";
+import { verify, logout } from "../api/auth";
+import { getFriends } from "../api/friends";
+import { useNavigate, } from "react-router-dom";
 import MessageInput from "../components/MessageInput";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
 import { socket } from "../api/socket";
+
+import SearchUsers from "../components/SearchUsers";
+import FriendRequests from "../components/FriendRequests";
 
 
 function Chat() {
@@ -35,17 +38,9 @@ function Chat() {
     const [error, setError] = useState("");
     const navigate = useNavigate();
     const [newMessage, setNewMessage] = useState("");
-    /*
- * Stores the IDs of users currently connected to the
- * Socket.IO server.
- *
- * Example:
- * [
- *   "6a40f83c13c82c13a154ce3e",
- *   "6a3f9dcf5bdf63a1c387d89d"
- * ]
- */
+    // Stores the IDs of users currently connected to the Socket.IO server.
     const [onlineUsers, setOnlineUsers] = useState([]);
+
 
     useEffect(() => {
         loadCurrentUser();
@@ -64,14 +59,16 @@ function Chat() {
     useEffect(() => {
 
         socket.on("newMessage", (message) => {
+            if (!selectedUser) return;
 
-            /*
-             * Add the incoming message to the current
-             * conversation without making another HTTP request.
-             */
-            setMessages((prev) => [...prev, message]);
+            const belongsToConversation =
+                message.senderId === selectedUser._id ||
+                message.sender === selectedUser._id;
+
+            if (belongsToConversation) {
+                setMessages((prev) => [...prev, message]);
+            }
         });
-
         /*
          * Remove the listener when this component unmounts.
          * Prevents duplicate listeners if the user leaves
@@ -96,17 +93,12 @@ function Chat() {
         });
 
         return () => {
-            /*
-             * Disconnect when leaving the chat page.
-             */
+            // Disconnect when leaving the chat page.
             socket.disconnect();
         };
     }, []);
 
-    /*
-    * Listen for updates whenever users connect
-    *or disconnect.
-    */
+    // Listen for updates whenever users connect or disconnect.
     useEffect(() => {
         socket.on("getOnlineUsers", (users) => {
             console.log("ONLINE USERS EVENT:", users);
@@ -117,6 +109,17 @@ function Chat() {
             socket.off("getOnlineUsers");
         };
     }, []);
+
+    useEffect(() => {
+        socket.on("friendRequestUpdated", () => {
+            loadFriends();
+        });
+
+        return () => {
+            socket.off("friendRequestUpdated");
+        };
+    }, []);
+
 
     const handleLogout = async () => {
         try {
@@ -245,6 +248,10 @@ function Chat() {
     return (
         <div style={{ padding: "20px" }}>
             <h1>Chat</h1>
+            <hr />
+            <SearchUsers />
+            <hr />
+            <FriendRequests />
 
             <hr />
             <Sidebar
