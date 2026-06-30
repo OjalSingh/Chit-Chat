@@ -262,6 +262,19 @@ Both REST endpoints and Socket.IO connections share the same authentication mode
 
 Every socket connection passes through authentication middleware before joining the application, ensuring only verified users can receive presence updates, notifications, and live messages.
 
+## Why Arcjet?
+
+Traditional Express middleware such as rate limiters primarily protect individual endpoints after requests have already reached the application. Arcjet provides an additional security layer by applying centralized protection policies before requests are processed, helping mitigate common abuse patterns with minimal application code.
+
+Arcjet is used to:
+
+- Apply request rate limiting to sensitive endpoints.
+- Reduce automated abuse such as bot traffic and repeated authentication attempts.
+- Keep security policies centralized rather than scattering validation logic across controllers.
+- Allow the application to focus on business logic while infrastructure-level concerns are handled by dedicated middleware.
+
+This separation improves maintainability, simplifies future security enhancements, and reflects a production-oriented approach to backend API design.
+
 
 ## Why Maintain a Server-side Socket Registry?
 
@@ -484,31 +497,34 @@ http://localhost:3000
 
 ## Authentication
 
-| Method | Endpoint         | Description    |
-| ------ | ---------------- | -------------- |
-| POST   | /api/auth/signup | Register       |
-| POST   | /api/auth/login  | Login          |
-| POST   | /api/auth/logout | Logout         |
-| GET    | /api/auth/verify | Verify session |
+| Method | Endpoint           | Description                                                     |
+| ------ | ------------------ | --------------------------------------------------------------- |
+| POST   | `/api/auth/signup` | Register a new user account.                                    |
+| POST   | `/api/auth/login`  | Authenticate a user and establish a session.                    |
+| POST   | `/api/auth/logout` | Terminate the current authenticated session.                    |
+| GET    | `/api/auth/verify` | Verify the current authenticated user and return their profile. |
+
 
 ## Friends
 
-| Method | Endpoint                 |Description       |
-| ------ | ------------------------ | ---------------- |
-| GET    | /api/friends/search      | Search users     |
-| POST   | /api/friends/request/:id | Send request     |
-| GET    | /api/friends/requests    | Pending requests |
-| PATCH  | /api/friends/accept/:id  | Accept request   |
-| PATCH  | /api/friends/reject/:id  | Reject request   |
-| GET    | /api/friends             | Get friends      |
+| Method | Endpoint                               | Description                                    |
+| ------ | -------------------------------------- | ---------------------------------------------- |
+| GET    | `/api/friends/search?username=<query>` | Search for users by username.                  |
+| GET    | `/api/friends/requests`                | Retrieve all pending incoming friend requests. |
+| GET    | `/api/friends`                         | Retrieve the authenticated user's friend list. |
+| POST   | `/api/friends/request/:userId`         | Send a friend request to another user.         |
+| PATCH  | `/api/friends/accept/:requestId`       | Accept a pending friend request.               |
+| PATCH  | `/api/friends/reject/:requestId`       | Reject a pending friend request.               |
+
 
 # Messages
 
-| Method | Endpoint               | Description  |
-| ------ | ---------------------- | ------------ |
-| GET    | /api/messages/users    | Friend list  |
-| GET    | /api/messages/:id      | Conversation |
-| POST   | /api/messages/send/:id | Send message |
+| Method | Endpoint                 | Description                                                                   |
+| ------ | ------------------------ | ----------------------------------------------------------------------------- |
+| GET    | `/api/messages/chats`    | Retrieve all users with whom the authenticated user has active conversations. |
+| GET    | `/api/messages/:id`      | Retrieve the complete conversation with a specific user.                      |
+| POST   | `/api/messages/send/:id` | Send a text or image message to a specific user.                              |
+
 
 ### All endpoints were tested using the Thunder Client extension for Visual Studio Code during development.
 ---
