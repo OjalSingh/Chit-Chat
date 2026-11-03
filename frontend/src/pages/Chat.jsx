@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { getMessages, sendMessage, } from "../api/messages";
 import { verify, logout } from "../api/auth";
 import { getFriends } from "../api/friends";
+import { getGroups, createGroup, getGroupMessages, sendGroupMessage, leaveGroup } from "../api/groups";
+import GroupList from "../components/GroupList";
 import { useNavigate, } from "react-router-dom";
 import MessageInput from "../components/MessageInput";
 import Sidebar from "../components/Sidebar";
@@ -32,6 +34,9 @@ function Chat() {
 
     const [friends, setFriends] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [groups, setGroups] = useState([]);
+    // At most one of selectedUser / selectedGroup is set at a time.
+    const [selectedGroup, setSelectedGroup] = useState(null);
     const [messages, setMessages] = useState([]);
 
     const [loading, setLoading] = useState(true);
@@ -45,11 +50,50 @@ function Chat() {
     useEffect(() => {
         loadCurrentUser();
         loadFriends();
+        loadGroups();
     }, []);
 
+    /*
+     * Group events. The server keeps each socket subscribed to its
+     * groups' rooms, so these arrive for every group the user is in.
+     */
     useEffect(() => {
-        console.log("Friends state:", friends);
-    }, [friends]);
+        const handleGroupMessage = (message) => {
+            if (selectedGroup && message.groupId === selectedGroup._id) {
+                setMessages((prev) => [...prev, message]);
+            }
+            // Move the active group to the top of the list.
+            setGroups((prev) => {
+                const group = prev.find((g) => g._id === message.groupId);
+                return group ? [group, ...prev.filter((g) => g !== group)] : prev;
+            });
+        };
+        const handleGroupAdded = (group) =>
+            setGroups((prev) => (prev.some((g) => g._id === group._id) ? prev : [group, ...prev]));
+        const handleGroupUpdated = (group) => {
+            setGroups((prev) => prev.map((g) => (g._id === group._id ? group : g)));
+            setSelectedGroup((current) => (current?._id === group._id ? group : current));
+        };
+        const handleGroupRemoved = ({ groupId }) => {
+            setGroups((prev) => prev.filter((g) => g._id !== groupId));
+            setSelectedGroup((current) => {
+                if (current?._id !== groupId) return current;
+                setMessages([]);
+                return null;
+            });
+        };
+
+        socket.on("newGroupMessage", handleGroupMessage);
+        socket.on("groupAdded", handleGroupAdded);
+        socket.on("groupUpdated", handleGroupUpdated);
+        socket.on("groupRemoved", handleGroupRemoved);
+        return () => {
+            socket.off("newGroupMessage", handleGroupMessage);
+            socket.off("groupAdded", handleGroupAdded);
+            socket.off("groupUpdated", handleGroupUpdated);
+            socket.off("groupRemoved", handleGroupRemoved);
+        };
+    }, [selectedGroup]);
 
     /*
      * Listen for messages pushed by the backend.
@@ -163,6 +207,43 @@ function Chat() {
         }
     };
 
+    const loadGroups = async () => {
+        try {
+            setGroups(await getGroups());
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleCreateGroup = async (name, memberIds) => {
+        const group = await createGroup(name, memberIds);
+        setGroups((prev) => [group, ...prev]);
+        openGroup(group);
+    };
+
+    const openGroup = async (group) => {
+        setSelectedUser(null);
+        setSelectedGroup(group);
+        setMessages([]);
+        try {
+            setMessages(await getGroupMessages(group._id));
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleLeaveGroup = async () => {
+        if (!selectedGroup || !currentUser) return;
+        try {
+            await leaveGroup(selectedGroup._id, currentUser._id);
+            setGroups((prev) => prev.filter((g) => g._id !== selectedGroup._id));
+            setSelectedGroup(null);
+            setMessages([]);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     const handleSendMessage = async () => {
 
         /*
@@ -176,17 +257,16 @@ function Chat() {
          * A conversation must be selected before a message
          * can be sent.
          */
-        if (!selectedUser) return;
+        if (!selectedUser && !selectedGroup) return;
 
         try {
 
             /*
              * POST the message to the backend.
              */
-            const createdMessage = await sendMessage(
-                selectedUser._id,
-                newMessage
-            );
+            const createdMessage = selectedGroup
+                ? await sendGroupMessage(selectedGroup._id, newMessage)
+                : await sendMessage(selectedUser._id, newMessage);
 
             /*
              * Instead of requesting the whole conversation
@@ -255,6 +335,7 @@ function Chat() {
                 selectedUser={selectedUser}
                 onlineUsers={onlineUsers}
                 onSelectFriend={(friend) => {
+                    setSelectedGroup(null);
                     setSelectedUser(friend);
                     loadMessages(friend._id);
                 }}
@@ -262,10 +343,22 @@ function Chat() {
 
             <hr />
 
+            <GroupList
+                groups={groups}
+                friends={friends}
+                selectedGroup={selectedGroup}
+                onSelectGroup={openGroup}
+                onCreateGroup={handleCreateGroup}
+            />
+
+            <hr />
+
             <ChatWindow
                 selectedUser={selectedUser}
+                selectedGroup={selectedGroup}
                 messages={messages}
                 currentUser={currentUser}
+                onLeaveGroup={handleLeaveGroup}
             />
 
             <hr />

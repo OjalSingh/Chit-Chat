@@ -78,7 +78,9 @@ export const getChatPartners =async (req, res) => {
         const loggedInUserId = req.user._id;
 
         //find all the messages the logged in user has sent or recieved
+        // Direct messages only; group messages have no receiverId.
         const messages =await Message.find({
+            groupId: null,
             $or: [
                 {senderId: loggedInUserId}, {receiverId:loggedInUserId},
             ],

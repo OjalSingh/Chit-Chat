@@ -614,6 +614,22 @@ http://localhost:3000
 
 ---
 
+### Group chats
+
+Friends can be pulled into named groups of up to 100 members. The creator is the first admin, admins add or remove people, anyone can leave, and the longest-standing member is promoted if the last admin leaves.
+
+| Method | Route | Who |
+|--------|-------|-----|
+| POST | `/api/groups` | anyone (members must be your friends) |
+| GET | `/api/groups` | your groups, most active first |
+| GET | `/api/groups/:groupId` | members |
+| PATCH | `/api/groups/:groupId` | admins (rename) |
+| GET / POST | `/api/groups/:groupId/messages` | members |
+| POST | `/api/groups/:groupId/members` | admins |
+| DELETE | `/api/groups/:groupId/members/:userId` | admins, or yourself to leave |
+
+Realtime: each socket joins a `group:<id>` room for every group on connect, and is added to new groups' rooms immediately. Events are `newGroupMessage` (to everyone in the room except the sender), `groupAdded`, `groupUpdated` and `groupRemoved`.
+
 ### Tests
 
 The backend has an integration suite (Vitest + Supertest) that drives the real Express routes and Socket.IO server against MongoDB.

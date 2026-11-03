@@ -8,10 +8,17 @@ const messageSchema = new mongoose.Schema(
             required: true,
         },
 
+        // Exactly one of receiverId (direct message) or groupId (group message) is set.
         receiverId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true,
+            required: function () { return !this.groupId; },
+        },
+
+        groupId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Group",
+            index: true,
         },
 
         text: {
@@ -28,6 +35,13 @@ const messageSchema = new mongoose.Schema(
         },
         {  timestamps: true }
 );
+
+messageSchema.pre("validate", function (next) {
+    if (this.groupId && this.receiverId) {
+        return next(new Error("A message goes to a user or a group, not both"));
+    }
+    next();
+});
 
 const Message = mongoose.model("Message", messageSchema);
 
