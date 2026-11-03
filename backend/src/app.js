@@ -6,6 +6,8 @@ import { ENV } from "./lib/env.js";
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 import friendRoutes from "./routes/friend.route.js";
+import groupRoutes from "./routes/group.route.js";
+import planRoutes from "./routes/plan.route.js";
 
 /*
  * Configures the Express app that Socket.IO's HTTP server wraps.
@@ -28,5 +30,7 @@ app.get("/api/health", (_, res) => res.status(200).json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/friends", friendRoutes);
+app.use("/api/groups", groupRoutes);
+app.use("/api/plans", planRoutes);
 
 export default app;
