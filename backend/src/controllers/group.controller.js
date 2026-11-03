@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Group, { MAX_GROUP_MEMBERS } from "../models/Group.js";
 import Message from "../models/Message.js";
+import Plan from "../models/Plan.js";
 import {
     io,
     getReceiverSocketId,
@@ -8,6 +9,7 @@ import {
     joinGroupRoom,
     leaveGroupRoom,
 } from "../lib/socket.js";
+import { scheduleDetection } from "../services/planDetector.js";
 
 const MEMBER_FIELDS = "username email";
 
@@ -171,6 +173,9 @@ export const sendGroupMessage = async (req, res) => {
         const room = io.to(groupRoom(group._id));
         (senderSocketId ? room.except(senderSocketId) : room).emit("newGroupMessage", message);
 
+        // Let the AI look for a plan once the chat goes quiet.
+        scheduleDetection(group._id);
+
         res.status(201).json(message);
     } catch (error) {
         console.log("Error in sendGroupMessage:", error);
@@ -246,6 +251,7 @@ export const removeMember = async (req, res) => {
 
         if (group.members.length === 0) {
             await Message.deleteMany({ groupId: group._id });
+            await Plan.deleteMany({ groupId: group._id });
             await group.deleteOne();
             return res.status(200).json({ message: "Group deleted" });
         }

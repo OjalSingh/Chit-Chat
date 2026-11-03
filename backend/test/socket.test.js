@@ -101,3 +101,24 @@ describe("group realtime events", () => {
     expect((await incoming).text).toBe("first!");
   });
 });
+
+describe("plan realtime events", () => {
+  it("pushes new plans and RSVP updates to every member", async () => {
+    const { ownerWithFriends } = await import("./helpers.js");
+    const { owner, friends } = await ownerWithFriends(1);
+    const group = (
+      await owner.agent.post("/api/groups").send({ name: "p", memberIds: [friends[0].user._id] }).expect(201)
+    ).body;
+
+    const memberSocket = open(friends[0].cookie);
+    await once(memberSocket, "groupsJoined");
+
+    const created = once(memberSocket, "plan:new");
+    const plan = (await owner.agent.post(`/api/groups/${group._id}/plans`).send({ title: "Chai run" })).body;
+    expect((await created)._id).toBe(plan._id);
+
+    const updated = once(memberSocket, "plan:update");
+    await owner.agent.patch(`/api/plans/${plan._id}`).send({ where: "Gate 2" }).expect(200);
+    expect((await updated).where).toBe("Gate 2");
+  });
+});
