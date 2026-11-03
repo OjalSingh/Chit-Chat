@@ -1,5 +1,7 @@
 # ChitChat 
 
+[![CI](https://github.com/OjalSingh/Chit-Chat/actions/workflows/ci.yml/badge.svg)](https://github.com/OjalSingh/Chit-Chat/actions/workflows/ci.yml)
+
 > **A backend-first real-time messaging platform demonstrating scalable hybrid REST + WebSocket architecture, secure authentication, and event-driven state synchronization.**
 
 ---
@@ -609,6 +611,24 @@ Backend
 ```
 http://localhost:3000
 ```
+
+---
+
+### Tests
+
+The backend has an integration suite (Vitest + Supertest) that drives the real Express routes and Socket.IO server against MongoDB.
+
+```bash
+cd backend
+npm test               # spins up an in-memory MongoDB automatically
+npm run test:coverage  # same, with a coverage report in backend/coverage
+```
+
+To run against your own MongoDB instead, set `MONGO_URI_TEST=mongodb://localhost:27017`.
+
+What it covers: signup and login validation, JWT cookie auth (missing, forged and expired tokens), message privacy between users, the friend-request lifecycle, username search, the Arcjet middleware's allow and deny paths, and socket authentication with live `newMessage` delivery.
+
+GitHub Actions runs the suite on Node 20 and 22 against a MongoDB 7 service container, and builds the frontend, on every push and pull request.
 
 ---
 ## Environment Variables
