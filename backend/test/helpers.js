@@ -19,3 +19,21 @@ export async function signupUser(overrides = {}) {
 }
 
 export { app, request };
+
+/** Makes two users friends through the real request/accept endpoints. */
+export async function befriend(a, b) {
+  const sent = await a.agent.post(`/api/friends/request/${b.user._id}`).expect(201);
+  await b.agent.patch(`/api/friends/accept/${sent.body.request._id}`).expect(200);
+}
+
+/** Signs up an owner plus `n` friends of the owner. */
+export async function ownerWithFriends(n) {
+  const owner = await signupUser();
+  const friends = [];
+  for (let i = 0; i < n; i += 1) {
+    const f = await signupUser();
+    await befriend(owner, f);
+    friends.push(f);
+  }
+  return { owner, friends };
+}

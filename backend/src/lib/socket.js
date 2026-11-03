@@ -3,6 +3,7 @@ import http from "http";
 import express from "express";
 import { ENV } from "./env.js";
 import { socketAuthMiddleware } from "../middleware/socket.auth.middleware.js";
+import Group from "../models/Group.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -24,6 +25,17 @@ io.on("connection", (socket) => {
 
     const userId = socket.userId
     userSocketMap[userId] = socket.id;
+
+    // Subscribe this socket to every group the user belongs to,
+    // so group events reach it with a single io.to(room) call.
+    // Runs in the background so the handlers below are registered immediately.
+    Group.find({ members: userId })
+        .select("_id")
+        .then((groups) => {
+            socket.join(groups.map((g) => groupRoom(g._id)));
+            socket.emit("groupsJoined");
+        })
+        .catch((error) => console.log("Error joining group rooms:", error));
 
     //io.emit is used to send events to all connected clients
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
@@ -66,6 +78,23 @@ io.on("connection", (socket) => {
          */
         export const getReceiverSocketId = (userId) => {
             return userSocketMap[userId];
+        };
+
+        /** Socket.IO room name for a group's members. */
+        export const groupRoom = (groupId) => `group:${groupId}`;
+
+        /** Subscribes online users' sockets to a group's room, e.g. after they are added. */
+        export const joinGroupRoom = (userIds, groupId) => {
+            for (const id of userIds) {
+                const socketId = userSocketMap[id.toString()];
+                if (socketId) io.in(socketId).socketsJoin(groupRoom(groupId));
+            }
+        };
+
+        /** Unsubscribes a user's socket from a group's room, e.g. after they leave. */
+        export const leaveGroupRoom = (userId, groupId) => {
+            const socketId = userSocketMap[userId.toString()];
+            if (socketId) io.in(socketId).socketsLeave(groupRoom(groupId));
         };
 
         export { io, app, server }
