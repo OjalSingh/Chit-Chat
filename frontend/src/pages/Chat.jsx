@@ -4,6 +4,7 @@ import { verify, logout } from "../api/auth";
 import { getFriends } from "../api/friends";
 import { getGroups, createGroup, getGroupMessages, sendGroupMessage, leaveGroup } from "../api/groups";
 import GroupList from "../components/GroupList";
+import { getPlans, createPlan, detectPlan } from "../api/plans";
 import { useNavigate, } from "react-router-dom";
 import MessageInput from "../components/MessageInput";
 import Sidebar from "../components/Sidebar";
@@ -37,6 +38,9 @@ function Chat() {
     const [groups, setGroups] = useState([]);
     // At most one of selectedUser / selectedGroup is set at a time.
     const [selectedGroup, setSelectedGroup] = useState(null);
+    // Open Plan cards for the selected group.
+    const [plans, setPlans] = useState([]);
+    const [planNotice, setPlanNotice] = useState("");
     const [messages, setMessages] = useState([]);
 
     const [loading, setLoading] = useState(true);
@@ -83,11 +87,24 @@ function Chat() {
             });
         };
 
+        /*
+         * Plan cards are live: the server emits plan:new when a card is
+         * created (by a member or by the AI) and plan:update on every
+         * RSVP, vote or edit.
+         */
+        const handlePlan = (plan) => {
+            if (selectedGroup && plan.groupId === selectedGroup._id) applyPlan(plan);
+        };
+
+        socket.on("plan:new", handlePlan);
+        socket.on("plan:update", handlePlan);
         socket.on("newGroupMessage", handleGroupMessage);
         socket.on("groupAdded", handleGroupAdded);
         socket.on("groupUpdated", handleGroupUpdated);
         socket.on("groupRemoved", handleGroupRemoved);
         return () => {
+            socket.off("plan:new", handlePlan);
+            socket.off("plan:update", handlePlan);
             socket.off("newGroupMessage", handleGroupMessage);
             socket.off("groupAdded", handleGroupAdded);
             socket.off("groupUpdated", handleGroupUpdated);
@@ -225,8 +242,48 @@ function Chat() {
         setSelectedUser(null);
         setSelectedGroup(group);
         setMessages([]);
+        setPlans([]);
+        setPlanNotice("");
         try {
-            setMessages(await getGroupMessages(group._id));
+            const [history, openPlans] = await Promise.all([
+                getGroupMessages(group._id),
+                getPlans(group._id),
+            ]);
+            setMessages(history);
+            setPlans(openPlans);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    // Inserts, replaces or (when cancelled) removes a plan in the list.
+    const applyPlan = (plan) => {
+        setPlans((prev) => {
+            const rest = prev.filter((p) => p._id !== plan._id);
+            if (plan.status !== "open") return rest;
+            const exists = prev.some((p) => p._id === plan._id);
+            return exists ? prev.map((p) => (p._id === plan._id ? plan : p)) : [plan, ...rest];
+        });
+    };
+
+    const handleFindPlan = async () => {
+        if (!selectedGroup) return;
+        setPlanNotice("Reading the chat...");
+        try {
+            const plan = await detectPlan(selectedGroup._id);
+            if (plan) applyPlan(plan);
+            setPlanNotice(plan ? "" : "No new plan spotted in the recent messages.");
+        } catch (err) {
+            setPlanNotice(err.response?.data?.message || "Couldn't check for a plan.");
+        }
+    };
+
+    const handleNewPlan = async () => {
+        if (!selectedGroup) return;
+        const title = window.prompt("What's the plan?");
+        if (!title?.trim()) return;
+        try {
+            applyPlan(await createPlan(selectedGroup._id, { title: title.trim() }));
         } catch (err) {
             console.error(err);
         }
@@ -359,6 +416,11 @@ function Chat() {
                 messages={messages}
                 currentUser={currentUser}
                 onLeaveGroup={handleLeaveGroup}
+                plans={plans}
+                onPlanChange={applyPlan}
+                onFindPlan={handleFindPlan}
+                onNewPlan={handleNewPlan}
+                planNotice={planNotice}
             />
 
             <hr />

@@ -582,6 +582,7 @@ MONGO_URI=
 JWT_SECRET=
 CLIENT_URL=http://localhost:5173
 ARCJET_KEY=
+ANTHROPIC_API_KEY=   # optional, turns on AI Plan cards
 ```
 
 Run
@@ -613,6 +614,30 @@ http://localhost:3000
 ```
 
 ---
+
+### AI Plan cards
+
+Group chats are where plans start ("trek Saturday?") and where they fall apart in 200 messages of "what time again?". Chit-Chat watches the conversation and, when people are arranging something, posts a live **Plan card**: what, where and when, a time poll built from what people suggested, and Going / Maybe / Can't buttons. Every tap goes to the whole group in real time.
+
+![A Plan card suggested from the chat, with a time poll and RSVPs](docs/plan-card.png)
+
+How it works:
+
+- **Debounced detection.** Each group message resets a timer. Once a group has been quiet for `PLAN_DEBOUNCE_MS` (10s), the server reads the last `PLAN_CONTEXT_MESSAGES` (20) messages and makes one model call, so the cost is one call per burst of chat, not one per message. Members can also press "Turn this chat into a plan" to run it straight away.
+- **Structured output.** Claude returns JSON that matches a fixed schema (`plan_detected`, `confidence`, `title`, `where`, `when_text`, `starts_at`, `time_options`), using structured outputs at low effort. Results under `PLAN_MIN_CONFIDENCE` are dropped. Open plans are passed in so the same plan never gets a second card.
+- **Untrusted input.** Chat text goes in as quoted data, never as instructions, and the model can only fill schema fields. A refusal or a truncated reply is treated as "no plan".
+- **Live and race-safe.** RSVPs and votes are atomic MongoDB updates (`$set` on a positional match, or `$addToSet`/`$pull` with `arrayFilters`), so members tapping at the same moment never overwrite each other. Every change emits `plan:new` or `plan:update` to the group's room.
+- **Evaluated.** `npm run eval:plans` runs 10 labeled conversations against the live model: real plans, small talk, vague wishes, past events, solo plans and a prompt-injection attempt. It reports precision and recall, and fails below 0.9 / 0.8.
+
+| Method | Route | |
+|--------|-------|-|
+| GET / POST | `/api/groups/:groupId/plans` | list open plans, or create one by hand |
+| POST | `/api/groups/:groupId/plans/detect` | run the AI detector now |
+| POST | `/api/plans/:planId/rsvp` | `{ status: "going" \| "maybe" \| "out" }` |
+| POST | `/api/plans/:planId/vote` | `{ optionId }`, toggles your vote |
+| PATCH | `/api/plans/:planId` | edit details, `pickOptionId` to lock in a time, `status: "cancelled"` |
+
+Configuration (backend `.env`): `ANTHROPIC_API_KEY` turns detection on. Optional settings are `PLAN_MODEL` (default `claude-opus-5-5`), `PLAN_TIMEZONE` (default `Asia/Kolkata`, used to resolve "Saturday 7am"), `PLAN_DEBOUNCE_MS`, `PLAN_CONTEXT_MESSAGES`, `PLAN_MIN_CONFIDENCE`, and `PLAN_DETECTION=off` to turn it off. Without a key, members can still create plans by hand.
 
 ### Group chats
 
