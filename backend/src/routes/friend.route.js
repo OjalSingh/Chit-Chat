@@ -8,6 +8,7 @@ import {  searchUsers,
     } from '../controllers/friend.controller.js';
 import { protectRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js"
+import { validateObjectId } from "../middleware/validateObjectId.middleware.js";
 
 const router = express.Router();
 
@@ -19,11 +20,11 @@ router.get("/requests", getFriendRequests);
 
 router.get("/", getFriends);
 
-router.post("/request/:userId", sendFriendRequest);
+router.post("/request/:userId", validateObjectId("userId"), sendFriendRequest);
 
-router.patch("/accept/:requestId", acceptFriendRequest);
+router.patch("/accept/:requestId", validateObjectId("requestId"), acceptFriendRequest);
 
-router.patch("/reject/:requestId", rejectFriendRequest);
+router.patch("/reject/:requestId", validateObjectId("requestId"), rejectFriendRequest);
 
 
 export default router;

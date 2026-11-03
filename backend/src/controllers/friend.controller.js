@@ -54,7 +54,7 @@ export const searchUsers = async (req, res) => {
          */
         const users = await User.find({
             username: {
-                $regex: username,
+                $regex: String(username).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
                 $options: "i",
             },
 
