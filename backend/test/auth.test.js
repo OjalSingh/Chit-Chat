@@ -107,3 +107,57 @@ describe("GET /api/auth/verify", () => {
     expect(res.headers["set-cookie"].join(";")).toMatch(/jwt=;/);
   });
 });
+
+describe("login cookie attributes", () => {
+  const withSameSite = async (value, fn) => {
+    const before = process.env.COOKIE_SAMESITE;
+    if (value === undefined) delete process.env.COOKIE_SAMESITE;
+    else process.env.COOKIE_SAMESITE = value;
+    try {
+      await fn();
+    } finally {
+      if (before === undefined) delete process.env.COOKIE_SAMESITE;
+      else process.env.COOKIE_SAMESITE = before;
+    }
+  };
+
+  it("is SameSite=Strict by default", async () => {
+    await withSameSite(undefined, async () => {
+      const res = await request(app)
+        .post("/api/auth/signup")
+        .send({ username: "strict", email: "strict@example.com", password: "secret123" })
+        .expect(201);
+      expect(res.headers["set-cookie"].find((c) => c.startsWith("jwt="))).toMatch(/SameSite=Strict/i);
+    });
+  });
+
+  it("supports cross-site deploys: SameSite=None is Secure, and logout clears with the same attributes", async () => {
+    await withSameSite("none", async () => {
+      const agent = request.agent(app);
+      const signup = await agent
+        .post("/api/auth/signup")
+        .send({ username: "xsite", email: "xsite@example.com", password: "secret123" })
+        .expect(201);
+      const set = signup.headers["set-cookie"].find((c) => c.startsWith("jwt="));
+      expect(set).toMatch(/SameSite=None/i);
+      expect(set).toMatch(/Secure/i);
+      expect(set).toMatch(/HttpOnly/i);
+
+      const out = await agent.post("/api/auth/logout").expect(200);
+      const cleared = out.headers["set-cookie"].find((c) => c.startsWith("jwt="));
+      expect(cleared).toMatch(/SameSite=None/i);
+      expect(cleared).toMatch(/Secure/i);
+    });
+  });
+
+  it("falls back to Strict for an unknown value", async () => {
+    await withSameSite("bogus", async () => {
+      const agent = request.agent(app);
+      const res = await agent
+        .post("/api/auth/signup")
+        .send({ username: "bogus", email: "bogus@example.com", password: "secret123" })
+        .expect(201);
+      expect(res.headers["set-cookie"].find((c) => c.startsWith("jwt="))).toMatch(/SameSite=Strict/i);
+    });
+  });
+});

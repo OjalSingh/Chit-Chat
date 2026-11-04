@@ -1,11 +1,12 @@
 import { io } from "socket.io-client";
+import { API_URL } from "./client";
 
 /*
  * Socket instance shared across the application.
  * autoConnect is disabled so we only establish the
  * connection after a user has been authenticated.
  */
-export const socket = io("http://localhost:3000", {
+export const socket = io(API_URL, {
     withCredentials: true,
     autoConnect: false,
 });

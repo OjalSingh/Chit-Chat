@@ -1,6 +1,6 @@
 import User from '../models/User.js'; // Import the User model
 import bcrypt from 'bcryptjs'; // Import the bcrypt library for password hashing
-import { generateToken } from '../lib/utils.js'; // Import the generateToken function from utils.js
+import { generateToken, cookieOptions } from '../lib/utils.js'; // Import the generateToken function from utils.js
 
 export const signup = async  (req, res) => {
     const { username, email, password } = req.body;
@@ -94,7 +94,7 @@ export const login = async (req, res) => {
 
 
 export const logout = (_, res) => {
-    res.cookie('jwt', '', { maxAge: 0 }); // Clear the JWT cookie by setting its value to an empty string and maxAge to 0
+    res.cookie('jwt', '', { ...cookieOptions(), maxAge: 0 }); // Clear the JWT cookie by setting its value to an empty string and maxAge to 0
     res.status(200).json({ message: 'Logged out successfully' });
 };           
 
