@@ -7,9 +7,10 @@ const STATUSES = [
 ];
 
 /*
- * A live Plan card. Every button calls the API; the server then emits
+ * A live plan ticket. Every button calls the API; the server then emits
  * plan:update to the whole group, and Chat.jsx swaps in the new plan,
- * so all members see the same card.
+ * so all members see the same ticket. Left: the details. Right: the
+ * tear-off stub with the RSVP buttons.
  */
 function PlanCard({ plan, members, currentUser, onChange }) {
     const nameOf = (id) => members.find((m) => m._id === id)?.username ?? "someone";
@@ -26,69 +27,69 @@ function PlanCard({ plan, members, currentUser, onChange }) {
     };
 
     return (
-        <div
-            style={{
-                border: "2px solid #7c3aed",
-                borderRadius: "8px",
-                padding: "10px",
-                marginBottom: "10px",
-                background: "#f5f3ff",
-            }}
-        >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong>📌 {plan.title}</strong>
-                {plan.source === "ai" && <small title="Suggested from your chat">✨ AI suggested</small>}
-            </div>
+        <div className="ticket">
+            <div className="ticket-main">
+                {plan.source === "ai" && <span className="tag" title="Suggested from your chat">Suggested</span>}
+                <h3>{plan.title}</h3>
 
-            <div style={{ margin: "6px 0" }}>
-                {plan.whenText ? <div>🕒 {plan.whenText}</div> : <div>🕒 Time not set yet</div>}
-                {plan.where && <div>📍 {plan.where}</div>}
-            </div>
-
-            {plan.timeOptions.length > 0 && !plan.whenText && (
-                <div style={{ margin: "6px 0" }}>
-                    <small>Vote for a time:</small>
-                    {plan.timeOptions.map((option) => {
-                        const mine = option.votes.includes(currentUser?._id);
-                        return (
-                            <div key={option._id} style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                                <button onClick={act(() => votePlan(plan._id, option._id))}>
-                                    {mine ? "✓ " : ""}
-                                    {option.label} ({option.votes.length})
-                                </button>
-                                <button
-                                    title="Lock in this time"
-                                    onClick={act(() => updatePlan(plan._id, { pickOptionId: option._id }))}
-                                >
-                                    Lock in
-                                </button>
-                            </div>
-                        );
-                    })}
+                <div className="detail">
+                    <b>When</b>
+                    <span>{plan.whenText || "Not decided yet"}</span>
                 </div>
-            )}
+                {plan.where && (
+                    <div className="detail">
+                        <b>Where</b>
+                        <span>{plan.where}</span>
+                    </div>
+                )}
 
-            <div style={{ display: "flex", gap: "6px", margin: "6px 0" }}>
+                {plan.timeOptions.length > 0 && !plan.whenText && (
+                    <div style={{ display: "grid", gap: "6px" }}>
+                        <small>Vote for a time</small>
+                        {plan.timeOptions.map((option) => {
+                            const mine = option.votes.includes(currentUser?._id);
+                            return (
+                                <div key={option._id} className="vote-row">
+                                    <button className={mine ? "small lime" : "small plain"} onClick={act(() => votePlan(plan._id, option._id))}>
+                                        {mine ? "✓ " : ""}
+                                        {option.label}
+                                    </button>
+                                    <span className="pips" aria-label={`${option.votes.length} votes`}>
+                                        {option.votes.map((v) => (
+                                            <i key={v} />
+                                        ))}
+                                    </span>
+                                    <button
+                                        className="small pink"
+                                        title="Lock in this time"
+                                        onClick={act(() => updatePlan(plan._id, { pickOptionId: option._id }))}
+                                    >
+                                        Lock in
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                <small>
+                    {going.length} going{going.length > 0 && `: ${going.map((r) => nameOf(r.userId)).join(", ")}`}
+                    {maybe.length > 0 && ` · ${maybe.length} maybe`}
+                </small>
+            </div>
+
+            <div className="ticket-stub">
                 {STATUSES.map(([status, label]) => (
                     <button
                         key={status}
+                        className={myRsvp === status ? "chosen" : "plain"}
                         onClick={act(() => rsvpPlan(plan._id, status))}
-                        style={{ fontWeight: myRsvp === status ? "bold" : "normal" }}
                     >
-                        {myRsvp === status ? "● " : ""}
                         {label}
                     </button>
                 ))}
-            </div>
-
-            <small>
-                {going.length} going{going.length > 0 && `: ${going.map((r) => nameOf(r.userId)).join(", ")}`}
-                {maybe.length > 0 && ` · ${maybe.length} maybe`}
-            </small>
-
-            <div style={{ marginTop: "6px" }}>
-                <button onClick={act(() => updatePlan(plan._id, { status: "cancelled" }))}>
-                    {plan.source === "ai" ? "Dismiss" : "Cancel plan"}
+                <button className="small plain" onClick={act(() => updatePlan(plan._id, { status: "cancelled" }))}>
+                    {plan.source === "ai" ? "Dismiss" : "Cancel"}
                 </button>
             </div>
         </div>

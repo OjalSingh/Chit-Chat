@@ -1,3 +1,4 @@
+import Avatar from "./Avatar";
 import { useEffect, useState } from "react";
 import {
     getFriendRequests,
@@ -85,31 +86,22 @@ function FriendRequests() {
     };
 
     return (
-        <div>
-            <h2>Friend Requests</h2>
+        <div style={{ display: "grid", gap: "10px" }}>
+            <h2>Requests</h2>
 
             {requests.length === 0 ? (
-                <p>No pending requests.</p>
+                <p className="muted">No requests right now.</p>
             ) : (
                 requests.map((request) => (
-                    <div
-                        key={request._id}
-                        style={{
-                            border: "1px solid gray",
-                            padding: "10px",
-                            marginBottom: "8px",
-                        }}
-                    >
-                        <strong>
-                            {request.sender.username}
-                        </strong>
-
-                        <br />
-                        {request.sender.email}
-
-                        <br />
+                    <div key={request._id} className="row" style={{ cursor: "default", flexWrap: "wrap" }}>
+                        <Avatar name={request.sender.username} />
+                        <div className="grow">
+                            <div className="name">{request.sender.username}</div>
+                            <small>{request.sender.email}</small>
+                        </div>
 
                         <button
+                            className="small lime"
                             onClick={() =>
                                 handleAccept(request._id)
                             }
@@ -118,10 +110,10 @@ function FriendRequests() {
                         </button>
 
                         <button
+                            className="small plain"
                             onClick={() =>
                                 handleReject(request._id)
                             }
-                            style={{ marginLeft: "10px" }}
                         >
                             Reject
                         </button>

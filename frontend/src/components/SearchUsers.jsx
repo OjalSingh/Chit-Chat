@@ -1,3 +1,4 @@
+import Avatar from "./Avatar";
 import { useState, useEffect } from "react";
 import { searchUsers, sendFriendRequest } from "../api/friends";
 
@@ -66,11 +67,11 @@ function SearchUsers() {
 
     }, [searchText]);
     return (
-        <div>
+        <div style={{ display: "grid", gap: "10px" }}>
 
-            <h2>Search Users</h2>
+            <h2>Find people</h2>
 
-            <input
+            <div className="search-row"><input
                 type="text"
                 value={searchText}
                 onChange={(e) =>
@@ -84,33 +85,24 @@ function SearchUsers() {
                 placeholder="Search username..."
             />
 
-            <button onClick={handleSearch}>
+            <button className="blue" onClick={handleSearch}>
                 Search
-            </button>
+            </button></div>
             {!hasSearched ? (
-                <p>Search for a user...</p>
+                <p className="muted">Type a username to find someone.</p>
             ) : results.length === 0 ? (
-                <p>No users found.</p>
+                <p className="muted">Nobody by that name.</p>
             ) : (
                 results.map((user) => (
-                    <div
-                        key={user._id}
-                        style={{
-                            border: "1px solid gray",
-                            padding: "10px",
-                            marginBottom: "8px",
-                        }}
-                    >
-                        <strong>{user.username}</strong>
-
-                        <br />
-
-                        {user.email}
-
-                        <br />
-                        <br />
+                    <div key={user._id} className="row" style={{ cursor: "default" }}>
+                        <Avatar name={user.username} />
+                        <div className="grow">
+                            <div className="name">{user.username}</div>
+                            <small>{user.email}</small>
+                        </div>
 
                         <button
+                            className="small pink"
                             disabled={pendingRequests.includes(user._id)}
                             onClick={async () => {
                                 try {
@@ -128,7 +120,7 @@ function SearchUsers() {
                         >
                             {pendingRequests.includes(user._id)
                                 ? "Pending"
-                                : "Add Friend"}
+                                : "Add"}
                         </button>
 
                     </div>

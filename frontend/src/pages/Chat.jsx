@@ -13,6 +13,8 @@ import { socket } from "../api/socket";
 
 import SearchUsers from "../components/SearchUsers";
 import FriendRequests from "../components/FriendRequests";
+import PaperPlane from "../components/PaperPlane";
+import ThemeToggle from "../components/ThemeToggle";
 
 
 function Chat() {
@@ -41,6 +43,7 @@ function Chat() {
     // Open Plan cards for the selected group.
     const [plans, setPlans] = useState([]);
     const [planNotice, setPlanNotice] = useState("");
+    const [tab, setTab] = useState("crew");
     const [messages, setMessages] = useState([]);
 
     const [loading, setLoading] = useState(true);
@@ -371,73 +374,97 @@ function Chat() {
         }
     };
     if (loading) {
-        return <h2>Loading friends...</h2>;
+        return <div className="auth-page"><h2>Warming up the engines...</h2></div>;
     }
 
     if (error) {
-        return <h2>{error}</h2>;
+        return <div className="auth-page"><h2 className="error">{error}</h2></div>;
     }
 
+    const hasChat = selectedUser || selectedGroup;
+
     return (
-        <div style={{ padding: "20px" }}>
-            <h1>Chat</h1>
-            <hr />
-            <SearchUsers />
-            <hr />
-            <FriendRequests />
+        <div className="shell">
+            <header className="topbar panel">
+                <div className="brand">
+                    <PaperPlane size={34} />
+                    <span className="brand-name">Chit-Chat</span>
+                </div>
+                <div className="actions">
+                    {currentUser && <span className="who">{currentUser.username}</span>}
+                    <ThemeToggle />
+                    <button className="small plain" onClick={handleLogout}>
+                        Log out
+                    </button>
+                </div>
+            </header>
 
-            <hr />
-            <Sidebar
-                friends={friends}
-                selectedUser={selectedUser}
-                onlineUsers={onlineUsers}
-                onSelectFriend={(friend) => {
-                    setSelectedGroup(null);
-                    setSelectedUser(friend);
-                    loadMessages(friend._id);
-                }}
-            />
+            <div className="main">
+                <aside className="rail panel">
+                    <nav className="tabs">
+                        {[
+                            ["crew", "Crew"],
+                            ["rooms", "Rooms"],
+                            ["add", "Add"],
+                        ].map(([id, label]) => (
+                            <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
+                                {label}
+                            </button>
+                        ))}
+                    </nav>
+                    <div className="rail-body">
+                        {tab === "crew" && (
+                            <Sidebar
+                                friends={friends}
+                                selectedUser={selectedUser}
+                                onlineUsers={onlineUsers}
+                                onSelectFriend={(friend) => {
+                                    setSelectedGroup(null);
+                                    setSelectedUser(friend);
+                                    loadMessages(friend._id);
+                                }}
+                            />
+                        )}
+                        {tab === "rooms" && (
+                            <GroupList
+                                groups={groups}
+                                friends={friends}
+                                selectedGroup={selectedGroup}
+                                onSelectGroup={openGroup}
+                                onCreateGroup={handleCreateGroup}
+                            />
+                        )}
+                        {tab === "add" && (
+                            <>
+                                <SearchUsers />
+                                <FriendRequests />
+                            </>
+                        )}
+                    </div>
+                </aside>
 
-            <hr />
-
-            <GroupList
-                groups={groups}
-                friends={friends}
-                selectedGroup={selectedGroup}
-                onSelectGroup={openGroup}
-                onCreateGroup={handleCreateGroup}
-            />
-
-            <hr />
-
-            <ChatWindow
-                selectedUser={selectedUser}
-                selectedGroup={selectedGroup}
-                messages={messages}
-                currentUser={currentUser}
-                onLeaveGroup={handleLeaveGroup}
-                plans={plans}
-                onPlanChange={applyPlan}
-                onFindPlan={handleFindPlan}
-                onNewPlan={handleNewPlan}
-                planNotice={planNotice}
-            />
-
-            <hr />
-
-            <MessageInput
-                value={newMessage}
-                onChange={setNewMessage}
-                onSend={handleSendMessage}
-            />
-
-
-            <hr />
-            <button onClick={handleLogout}>
-                Logout
-            </button>
+                <section className="convo panel">
+                    <ChatWindow
+                        selectedUser={selectedUser}
+                        selectedGroup={selectedGroup}
+                        messages={messages}
+                        currentUser={currentUser}
+                        onLeaveGroup={handleLeaveGroup}
+                        plans={plans}
+                        onPlanChange={applyPlan}
+                        onFindPlan={handleFindPlan}
+                        onNewPlan={handleNewPlan}
+                        planNotice={planNotice}
+                    />
+                    <MessageInput
+                        value={newMessage}
+                        onChange={setNewMessage}
+                        onSend={handleSendMessage}
+                        disabled={!hasChat}
+                    />
+                </section>
+            </div>
         </div>
-
     );
 }
 

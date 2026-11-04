@@ -1,4 +1,6 @@
 import { useState } from "react";
+import PaperPlane from "../components/PaperPlane";
+import ThemeToggle from "../components/ThemeToggle";
 import { useNavigate, Link } from "react-router-dom";
 import { login } from "../api/auth";
 import { socket } from "../api/socket";
@@ -64,65 +66,35 @@ function Login() {
     };
 
     return (
-        <div style={{ padding: "2rem" }}>
-            <h1>Login</h1>
-
-            <form onSubmit={handleSubmit}>
-
-                <div>
-                    <label>Email</label>
-                    <br />
-
-                    <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                    />
+        <div className="auth-page">
+            <div className="auth-theme"><ThemeToggle /></div>
+            <div className="auth-card panel">
+                <svg className="trail" viewBox="0 0 150 60" aria-hidden="true">
+                    <path d="M4 52 C 30 4, 70 66, 100 30 S 130 8, 140 14" fill="none" stroke="var(--ink)" strokeWidth="3" strokeDasharray="2 9" strokeLinecap="round" />
+                </svg>
+                <div className="brand">
+                    <PaperPlane size={44} />
+                    <span className="brand-name">Chit-Chat</span>
                 </div>
-
-                <br />
-
-                <div>
-                    <label>Password</label>
-                    <br />
-
-                    <input
-                        type="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-
-                <br />
-
-                {error && (
-                    <p style={{ color: "red" }}>
-                        {error}
-                    </p>
-                )}
-
-                <button
-                    type="submit"
-                    disabled={loading}
-                >
-                    {loading ? "Logging in..." : "Login"}
-                </button>
-
-            </form>
-
-            <br />
-
-            <p>
-                Don't have an account?{" "}
-                <Link to="/signup">
-                    Signup
-                </Link>
-            </p>
-
+                <h1>Welcome back</h1>
+                <form onSubmit={handleSubmit}>
+                    <div className="field">
+                        <label htmlFor="email">Email</label>
+                        <input id="email" type="email" name="email" value={formData.email} onChange={handleChange} required />
+                    </div>
+                    <div className="field">
+                        <label htmlFor="password">Password</label>
+                        <input id="password" type="password" name="password" value={formData.password} onChange={handleChange} required />
+                    </div>
+                    {error && <p className="error">{error}</p>}
+                    <button type="submit" className="pink" disabled={loading}>
+                        {loading ? "Logging in..." : "Log in"}
+                    </button>
+                </form>
+                <p className="switch">
+                    New here? <Link to="/signup">Make an account</Link>
+                </p>
+            </div>
         </div>
     );
 }
