@@ -4,6 +4,8 @@ import express from "express";
 import { ENV } from "./env.js";
 import { socketAuthMiddleware } from "../middleware/socket.auth.middleware.js";
 import Group from "../models/Group.js";
+import User from "../models/User.js";
+import mongoose from "mongoose";
 
 const app = express();
 const server = http.createServer(app);
@@ -39,6 +41,32 @@ io.on("connection", (socket) => {
 
     //io.emit is used to send events to all connected clients
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
+
+    /*
+     * "Is typing" pings. Body: { to } for a friend, or { groupId } for a room.
+     * Only friends (or fellow room members) ever see it, it carries no text,
+     * and a socket can send at most one a second.
+     */
+    let lastTyping = 0;
+    socket.on("typing", async (payload = {}) => {
+        try {
+            const now = Date.now();
+            if (now - lastTyping < 1000) return;
+            lastTyping = now;
+            const { to, groupId } = payload;
+            const from = { userId, username: socket.user.username };
+            if (typeof groupId === "string" && mongoose.isValidObjectId(groupId)) {
+                if (socket.rooms.has(groupRoom(groupId))) socket.to(groupRoom(groupId)).emit("typing", { ...from, groupId });
+            } else if (typeof to === "string" && mongoose.isValidObjectId(to)) {
+                const receiverSocketId = userSocketMap[to];
+                if (receiverSocketId && (await User.exists({ _id: userId, friends: to }))) {
+                    io.to(receiverSocketId).emit("typing", from);
+                }
+            }
+        } catch (error) {
+            console.log("Error handling typing:", error.message);
+        }
+    });
 
     //Handle friend request sending
     socket.on("sendFriendRequest", ({ receiverId, request }) => {

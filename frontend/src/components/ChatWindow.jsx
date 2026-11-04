@@ -22,6 +22,7 @@ function ChatWindow({
     onCreatePlan,
     onOpenHistory,
     planNotice,
+    typingNames = [],
 }) {
     const senderIdOf = (message) => message.senderId?._id ?? message.senderId;
 
@@ -39,7 +40,7 @@ function ChatWindow({
     const bottom = useRef(null);
     useEffect(() => {
         bottom.current?.scrollIntoView({ block: "end" });
-    }, [messages.length, selectedUser?._id, selectedGroup?._id]);
+    }, [messages.length, typingNames.length, selectedUser?._id, selectedGroup?._id]);
 
     return (
         <>
@@ -111,6 +112,16 @@ function ChatWindow({
                                     </div>
                                 );
                             })
+                        )}
+                        {typingNames.length > 0 && (
+                            <div className="typing" role="status" aria-live="polite">
+                                <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>
+                                <small>
+                                    {typingNames.length === 1
+                                        ? `${typingNames[0]} is typing`
+                                        : `${typingNames.slice(0, 2).join(" and ")} are typing`}
+                                </small>
+                            </div>
                         )}
                         <div ref={bottom} />
                     </>
