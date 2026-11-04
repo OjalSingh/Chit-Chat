@@ -356,7 +356,7 @@ label {
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   border-bottom: 3px solid var(--line);
   background: var(--panel-2);
 }
@@ -369,7 +369,7 @@ label {
   color: var(--ink);
   padding: 11px 6px;
   font-family: "Fredoka", sans-serif;
-  font-size: 1rem;
+  font-size: 0.95rem;
   position: relative;
 }
 
@@ -830,6 +830,275 @@ label {
     from {
       transform: scale(0.92);
       opacity: 0;
+    }
+  }
+}
+
+select {
+  font: inherit;
+  font-weight: 700;
+  width: 100%;
+  padding: 8px 12px;
+  color: #1b2a6b;
+  background: #fff;
+  border: 2.5px solid var(--line);
+  border-radius: 14px;
+}
+
+/* ---------- Word of the day ---------- */
+
+.game-scroll {
+  align-items: stretch;
+}
+
+.game-cols {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+}
+
+.game-play {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+
+.game-side {
+  display: grid;
+  gap: 10px;
+}
+
+.board {
+  display: grid;
+  gap: 6px;
+}
+
+.wrow {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.tile {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  font-family: "Fredoka", sans-serif;
+  font-weight: 600;
+  font-size: 1.6rem;
+  color: #1b2a6b;
+  background: #fff;
+  border: 3px solid var(--line);
+  border-radius: 10px;
+}
+
+.tile.typed {
+  background: #fff7cf;
+  box-shadow: 0 3px 0 var(--shadow);
+}
+
+.tile.g,
+.key.g,
+.m.g {
+  background: var(--lime);
+}
+
+.tile.y,
+.key.y,
+.m.y {
+  background: var(--sun);
+}
+
+.tile.x,
+.key.x,
+.m.x {
+  background: #aab2d6;
+}
+
+.game-msg {
+  min-height: 1.4em;
+  font-weight: 800;
+  text-align: center;
+}
+
+.keyboard {
+  display: grid;
+  gap: 6px;
+}
+
+.krow {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.key {
+  min-width: 0;
+  width: 32px;
+  height: 44px;
+  padding: 0;
+  text-transform: uppercase;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--shadow);
+}
+
+.key.wide {
+  width: 54px;
+  font-size: 0.78rem;
+}
+
+.finish {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.share {
+  margin: 0;
+  padding: 10px 14px;
+  font: inherit;
+  line-height: 1.25;
+  background: var(--panel-2);
+  border: 2.5px dashed var(--line);
+  border-radius: 12px;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  text-align: center;
+}
+
+.stat-row b {
+  display: block;
+  font-family: "Fredoka", sans-serif;
+  font-size: 1.4rem;
+}
+
+.dist {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.dist-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dist-row .bar {
+  padding: 0 8px;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.lb {
+  display: grid;
+  gap: 8px;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 2.5px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.lb-row.me {
+  background: var(--sun);
+  color: #1b2a6b;
+}
+
+.lb-row.me small {
+  color: #3a4580;
+}
+
+.lb-row .rank {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 2.5px solid #1b2a6b;
+  border-radius: 50%;
+  background: var(--pink);
+  color: #1b2a6b;
+  font-weight: 800;
+}
+
+.who-col {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+.mini-grid {
+  display: grid;
+  gap: 2px;
+}
+
+.mini-grid div {
+  display: flex;
+  gap: 2px;
+}
+
+.m {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid #1b2a6b;
+  border-radius: 2px;
+}
+
+@media (max-width: 860px) {
+  .game-cols {
+    grid-template-columns: 1fr;
+  }
+
+  .tile {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tile.g,
+  .tile.y,
+  .tile.x {
+    animation: flip 0.45s ease both;
+  }
+
+  .shake {
+    animation: shake 0.35s;
+  }
+
+  @keyframes flip {
+    from {
+      transform: rotateX(90deg);
+    }
+  }
+
+  @keyframes shake {
+    20%,
+    60% {
+      transform: translateX(-6px);
+    }
+    40%,
+    80% {
+      transform: translateX(6px);
     }
   }
 }
