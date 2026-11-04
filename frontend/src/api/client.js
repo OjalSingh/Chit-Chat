@@ -1,7 +1,10 @@
 import axios from "axios";
 
+// Where the API lives. Set VITE_API_URL at build time when deploying.
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 const client = axios.create({
-    baseURL: "http://localhost:3000/api", 
+    baseURL: `${API_URL}/api`,
     withCredentials: true,
 });
 

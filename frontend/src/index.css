@@ -201,6 +201,15 @@ label {
   font-weight: 800;
 }
 
+.ok {
+  color: #1c7a43;
+  font-weight: 800;
+}
+
+:root[data-theme="night"] .ok {
+  color: var(--lime);
+}
+
 .muted {
   color: var(--ink-soft);
 }

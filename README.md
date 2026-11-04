@@ -2,7 +2,26 @@
 
 [![CI](https://github.com/OjalSingh/Chit-Chat/actions/workflows/ci.yml/badge.svg)](https://github.com/OjalSingh/Chit-Chat/actions/workflows/ci.yml)
 
-> **A backend-first real-time messaging platform demonstrating scalable hybrid REST + WebSocket architecture, secure authentication, and event-driven state synchronization.**
+> **A group-chat app for people who actually want to meet up: chat in rooms, turn the chatter into live plans with reminders and a call link, then play daily games and compare scores. Built on a hybrid REST + WebSocket backend.**
+
+<p align="center">
+  <img src="docs/ui-sky.png" width="49%" alt="Dashboard, Sky background" />
+  <img src="docs/ui-night.png" width="49%" alt="Dashboard, Night background" />
+</p>
+
+## What you can do
+
+- **Chat** one to one or in rooms, with live delivery and online presence.
+- **Plan** together. A plan is a ticket with what, where and when, a time poll, Going / Maybe / Can't, an optional call link and reminders 1 hour and 5 minutes before. With an Anthropic key, the AI can draft the ticket from the chat.
+- **Play** daily games and keep records. The first game is Word of the day, with streaks, averages and a room leaderboard that never spoils the answer.
+- **Pick a look.** Two backgrounds (Sky and Night) in a paper-plane, Y2K style, with a layout that collapses to one column on phones.
+
+<p align="center">
+  <img src="docs/plan-reminder.png" width="49%" alt="Plan ticket with call link and a reminder" />
+  <img src="docs/game-wordle.png" width="49%" alt="Word of the day with records and room leaderboard" />
+</p>
+
+> The sections below keep the original backend write-up (architecture, auth, presence, messaging) and then cover plans, games, the full API and the schema.
 
 ---
 
@@ -23,6 +42,9 @@
 13. Database Schema Deep Dive
 14. Engineering Highlights
 15. Future Extensions & Scaling Strategy
+16. Games
+
+Plan cards, group chats and tests are documented inside *Running Locally*; the new API endpoints are in *API Documentation*.
 
 ---
 
@@ -58,10 +80,10 @@ Unlike many beginner chat applications that rely entirely on WebSockets, ChitCha
 
 ### Frontend
 
-- React
+- Preact (React-compatible) with React Router
 - Vite
-- Native React Hooks
-- Lightweight Component Architecture
+- Hooks and plain CSS (design tokens, two themes)
+- Socket.IO client
 
 ---
 
@@ -69,7 +91,7 @@ Unlike many beginner chat applications that rely entirely on WebSockets, ChitCha
 
 ```
                     +----------------+
-                    | React (Vite)   |
+                    | Preact (Vite)  |
                     +----------------+
                           │
           ┌───────────────┴───────────────┐
@@ -583,6 +605,7 @@ JWT_SECRET=
 CLIENT_URL=http://localhost:5173
 ARCJET_KEY=
 ANTHROPIC_API_KEY=   # optional, turns on AI Plan cards
+# Optional: PLAN_DETECTION=off, PLAN_REMINDERS=off, PLAN_TIMEZONE, GAME_TIMEZONE (see the table below)
 ```
 
 Run
@@ -678,13 +701,27 @@ GitHub Actions runs the suite on Node 20 and 22 against a MongoDB 7 service cont
 ---
 ## Environment Variables
 
-| Variable   | Purpose             |
-|------------|-------------------- |
-| PORT       | Express server      |
-| MONGO_URI  | MongoDB connection  |
-| JWT_SECRET | Authentication      |
-| CLIENT_URL | Socket.IO CORS      |
-| ARCJET_KEY | Security middleware |
+Backend `.env`. Only the first four are required.
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `MONGO_URI` | yes | MongoDB connection string |
+| `JWT_SECRET` | yes | Signs login cookies |
+| `CLIENT_URL` | yes | Frontend origin, for CORS and Socket.IO |
+| `ARCJET_KEY` | yes | Arcjet security middleware (bot, rate limit, shield) |
+| `PORT` | no | Server port, default 3000 |
+| `COOKIE_SAMESITE` | no | `strict` (default), `lax` or `none`. Use `none` (HTTPS only) when the frontend and API are on different sites |
+| `ANTHROPIC_API_KEY` | no | Turns on AI Plan cards. Without it, plans are made by hand |
+| `PLAN_DETECTION` | no | `off` disables AI detection even with a key |
+| `PLAN_MODEL` | no | Model for detection, default `claude-opus-5-5` |
+| `PLAN_TIMEZONE` | no | Resolves "Saturday 7am", default `Asia/Kolkata` |
+| `PLAN_DEBOUNCE_MS`, `PLAN_CONTEXT_MESSAGES`, `PLAN_MIN_CONFIDENCE` | no | Tune AI detection |
+| `PLAN_REMINDERS` | no | `off` disables the reminder ticker |
+| `GAME_TIMEZONE` | no | Where the daily game day flips, defaults to `PLAN_TIMEZONE` |
+| `GAME_SALT` | no | Salt for picking the daily word, defaults to `JWT_SECRET` |
+| `MONGO_URI_TEST` | tests | MongoDB for the test suite |
+
+The frontend talks to `http://localhost:3000` by default. For a deploy, set `VITE_API_URL` (for example `https://api.example.com`) when building the frontend.
 
 ---
 # API Documentation
@@ -719,6 +756,43 @@ GitHub Actions runs the suite on Node 20 and 22 against a MongoDB 7 service cont
 | GET    | `/api/messages/:id`      | Retrieve the complete conversation with a specific user.                      |
 | POST   | `/api/messages/send/:id` | Send a text or image message to a specific user.                              |
 
+
+## Groups
+
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| POST | `/api/groups` | Create a group from your friends. Body `{ name, memberIds }`. |
+| GET | `/api/groups` | Your groups. |
+| GET | `/api/groups/:groupId` | One group, if you are a member. |
+| PATCH | `/api/groups/:groupId` | Rename (admins). |
+| GET / POST | `/api/groups/:groupId/messages` | Read or send group messages. |
+| POST | `/api/groups/:groupId/members` | Add friends (admins). |
+| DELETE | `/api/groups/:groupId/members/:userId` | Remove a member, or leave. |
+
+## Plans
+
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| GET | `/api/groups/:groupId/plans` | Open plans in a group. |
+| POST | `/api/groups/:groupId/plans` | Create a plan: `{ title, where?, whenText?, startsAt?, meetLink?, timeOptions? }`. A start time turns on reminders. |
+| POST | `/api/groups/:groupId/plans/detect` | Ask the AI to read the chat now (503 without a key). |
+| POST | `/api/plans/:planId/rsvp` | `{ status: going / maybe / out }`. |
+| POST | `/api/plans/:planId/vote` | Toggle a vote on a time option. |
+| PATCH | `/api/plans/:planId` | Edit details, set `meetLink` (https only), lock in a time, or cancel. |
+
+Socket events: `plan:new`, `plan:update`, `plan:reminder`.
+
+## Games
+
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| GET | `/api/games` | List the available games. |
+| GET | `/api/games/wordle/today` | Your game for today. |
+| POST | `/api/games/wordle/guess` | `{ guess }`. Scored on the server. |
+| GET | `/api/games/wordle/stats` | Your record. |
+| GET | `/api/games/wordle/leaderboard/:groupId` | Ranking and today's grids for a room. |
+
+Socket event: `game:result`.
 
 ### All endpoints were tested using the Thunder Client extension for Visual Studio Code during development.
 ---
@@ -795,14 +869,18 @@ Rather than showcasing only CRUD operations, ChitChat demonstrates practical bac
 
 # Future Extensions
 
-- Redis Pub/Sub for multi-server Socket.IO synchronization
-- Horizontal load balancing
+Next up:
+
+- **A pluggable games system.** More daily games, plus live games played together in a room (drawing, social deduction), with shared scores and records.
+- **Deploy.** Frontend on a static host, API on a Node host, MongoDB Atlas. The frontend's API URL is already `VITE_API_URL`; if they sit on different sites, set `COOKIE_SAMESITE=none` on the API.
+- A public RSVP link and a shareable ticket image for plans.
+- Sounds, haptics and stamp animations.
+
+Later, for scale and polish:
+
+- Redis Pub/Sub for multi-server Socket.IO synchronization, and a load test
 - JWT refresh token rotation
-- End-to-end encrypted messaging
-- Read receipts
-- Typing indicators
-- Message pagination
-- Multi-device session synchronization
+- Read receipts, typing indicators and message pagination
 - Push notifications
 - Media uploads via Cloudinary
 

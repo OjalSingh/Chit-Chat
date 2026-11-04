@@ -133,11 +133,14 @@ describe("AI plan detection", () => {
     ENV.PLAN_DEBOUNCE_MS = 30;
     extractPlan.mockReset();
   });
-  afterEach(() => {
+  afterEach(async () => {
     if (saved.key === undefined) delete process.env.ANTHROPIC_API_KEY;
     else process.env.ANTHROPIC_API_KEY = saved.key;
     ENV.PLAN_DEBOUNCE_MS = saved.debounce;
     __resetDetector();
+    // A detection that fired just before the reset may still be in flight.
+    // Let it land now, so it can't register as a call in the next test's mock.
+    await new Promise((r) => setTimeout(r, 100));
   });
 
   const found = { title: "Saturday trek", where: "Yelagiri", whenText: "Sat 7am", startsAt: undefined, timeOptions: [], confidence: 0.9 };

@@ -15,8 +15,27 @@ function SearchUsers() {
     // Stores if the user has searched and what it has searched
     const [hasSearched, setHasSearched] = useState(false);
 
-    // Stores status of pending requests
-    const [pendingRequests, setPendingRequests] = useState([]);
+    // What happened when we tried to add each person:
+    // { [userId]: { state: "sending" | "sent" | "error", text } }
+    const [requestStatus, setRequestStatus] = useState({});
+
+    const setStatus = (id, status) => setRequestStatus((prev) => ({ ...prev, [id]: status }));
+
+    const handleAdd = async (user) => {
+        setStatus(user._id, { state: "sending" });
+        try {
+            await sendFriendRequest(user._id);
+            setStatus(user._id, {
+                state: "sent",
+                text: `Request sent to ${user.username}. They'll see it under Add > Requests.`,
+            });
+        } catch (err) {
+            setStatus(user._id, {
+                state: "error",
+                text: err.response?.data?.message || "Couldn't send the request. Try again.",
+            });
+        }
+    };
 
     // Search for matching usernames.
     const handleSearch = async () => {
@@ -94,7 +113,7 @@ function SearchUsers() {
                 <p className="muted">Nobody by that name.</p>
             ) : (
                 results.map((user) => (
-                    <div key={user._id} className="row" style={{ cursor: "default" }}>
+                    <div key={user._id} className="row" style={{ cursor: "default", flexWrap: "wrap" }}>
                         <Avatar name={user.username} />
                         <div className="grow">
                             <div className="name">{user.username}</div>
@@ -103,26 +122,20 @@ function SearchUsers() {
 
                         <button
                             className="small pink"
-                            disabled={pendingRequests.includes(user._id)}
-                            onClick={async () => {
-                                try {
-                                    await sendFriendRequest(user._id);
-
-                                    setPendingRequests((prev) => [
-                                        ...prev,
-                                        user._id,
-                                    ]);
-
-                                } catch (err) {
-                                    console.error(err);
-                                }
-                            }}
+                            disabled={["sending", "sent"].includes(requestStatus[user._id]?.state)}
+                            onClick={() => handleAdd(user)}
                         >
-                            {pendingRequests.includes(user._id)
-                                ? "Pending"
-                                : "Add"}
+                            {{ sending: "Sending...", sent: "Sent", error: "Retry" }[requestStatus[user._id]?.state] ?? "Add"}
                         </button>
-
+                        {requestStatus[user._id]?.text && (
+                            <p
+                                role="status"
+                                className={requestStatus[user._id].state === "error" ? "error" : "ok"}
+                                style={{ flexBasis: "100%", fontSize: "0.85rem" }}
+                            >
+                                {requestStatus[user._id].text}
+                            </p>
+                        )}
                     </div>
                 ))
             )}
