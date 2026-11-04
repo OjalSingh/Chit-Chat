@@ -1,11 +1,14 @@
+import { useEffect, useRef } from "react";
+import PlanCard from "./PlanCard";
+import PaperPlane from "./PaperPlane";
 
 /*
  * Renders one conversation: a direct chat with selectedUser,
  * or a group chat with selectedGroup. Group messages arrive with
  * senderId populated ({ _id, username }) so we can label them.
+ * The header and the message list are separate grid rows in Chat.jsx's
+ * layout; only the message list scrolls.
  */
-import PlanCard from "./PlanCard";
-
 function ChatWindow({
     selectedUser,
     selectedGroup,
@@ -28,77 +31,76 @@ function ChatWindow({
 
     const hasChat = selectedUser || selectedGroup;
 
+    // Keep the newest note in view.
+    const bottom = useRef(null);
+    useEffect(() => {
+        bottom.current?.scrollIntoView({ block: "end" });
+    }, [messages.length, selectedUser?._id, selectedGroup?._id]);
+
     return (
-
-<div style={{ flex: 1 }}>
-<h2>Conversation</h2>
-
-            {hasChat ? (
-                <> 
-                    {selectedGroup ? (
-                        <p>
-                            <strong>{selectedGroup.name}</strong>{" "}
-                            <small>
-                                ({selectedGroup.members.map((m) => m.username).join(", ")})
-                            </small>{" "}
-                            <button onClick={onLeaveGroup}>Leave group</button>
-                        </p>
-                    ) : (
-                        <p>
-                            Chatting with <strong>{selectedUser.username}</strong>
-                        </p>
-                    )}
-
-                    {selectedGroup && (
-                        <div style={{ marginBottom: "10px" }}>
-                            <button onClick={onFindPlan}>✨ Turn this chat into a plan</button>{" "}
-                            <button onClick={onNewPlan}>+ New plan</button>
-                            {planNotice && <small style={{ marginLeft: "8px" }}>{planNotice}</small>}
-                            {plans.map((plan) => (
-                                <PlanCard
-                                    key={plan._id}
-                                    plan={plan}
-                                    members={selectedGroup.members}
-                                    currentUser={currentUser}
-                                    onChange={onPlanChange}
-                                />
-                            ))}
+        <>
+            <div className="convo-head">
+                {selectedGroup ? (
+                    <>
+                        <div>
+                            <h2>{selectedGroup.name}</h2>
+                            <small>{selectedGroup.members.map((m) => m.username).join(", ")}</small>
                         </div>
-                    )}
+                        <div className="tools">
+                            {planNotice && <small>{planNotice}</small>}
+                            <button className="small lime" onClick={onNewPlan}>+ New plan</button>
+                            <button className="small blue" onClick={onFindPlan}>Plan from chat</button>
+                            <button className="small plain" onClick={onLeaveGroup}>Leave</button>
+                        </div>
+                    </>
+                ) : selectedUser ? (
+                    <h2>{selectedUser.username}</h2>
+                ) : (
+                    <h2>Chit-Chat</h2>
+                )}
+            </div>
 
-                    {messages.length === 0 ? (
-                        <p>No messages yet.</p>
-                    ) : (
-                        messages.map((message) => {
+            {selectedGroup && plans.length > 0 && (
+                <div className="plans">
+                    {plans.map((plan) => (
+                        <PlanCard
+                            key={plan._id}
+                            plan={plan}
+                            members={selectedGroup.members}
+                            currentUser={currentUser}
+                            onChange={onPlanChange}
+                        />
+                    ))}
+                </div>
+            )}
 
-                            const isMine =
-                                currentUser &&
-                                senderIdOf(message) === currentUser._id;
-
-                            return (
-                                <div
-                                    key={message._id}
-                                    style={{
-                                        border: "1px solid gray",
-                                        padding: "8px",
-                                        marginBottom: "8px",
-                                        textAlign: isMine ? "right" : "left",
-                                    }}
-                                >
-                                    <strong>{senderName(message)}</strong>
-
-                                    <br />
-
-                                    {message.text}
-                                </div>
-                            );
-                        })
-                    )}
-                </>
-            ) : (
-                <p>Select a friend or a group.</p>
-            )} 
-        </div>
+            <div className="scroll">
+                {!hasChat ? (
+                    <div className="empty">
+                        <PaperPlane size={72} />
+                        <h3>Ready for take-off</h3>
+                        <p className="muted">Pick someone from your crew or a room and send your first note.</p>
+                    </div>
+                ) : (
+                    <>
+                        {messages.length === 0 ? (
+                            <p className="muted" style={{ margin: "auto" }}>No notes yet. Say hi!</p>
+                        ) : (
+                            messages.map((message) => {
+                                const isMine = currentUser && senderIdOf(message) === currentUser._id;
+                                return (
+                                    <div key={message._id} className={isMine ? "msg mine" : "msg"}>
+                                        <span className="who">{senderName(message)}</span>
+                                        {message.text}
+                                    </div>
+                                );
+                            })
+                        )}
+                        <div ref={bottom} />
+                    </>
+                )}
+            </div>
+        </>
     );
 }
 

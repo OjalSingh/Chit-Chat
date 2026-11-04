@@ -1,4 +1,6 @@
 import { useState } from "react";
+import PaperPlane from "../components/PaperPlane";
+import ThemeToggle from "../components/ThemeToggle";
 import { useNavigate, Link } from "react-router-dom";
 import { signup } from "../api/auth";
 
@@ -83,90 +85,42 @@ function Signup() {
         setLoading(false);
     }
 };
-  return (
-    <div style={{ padding: "2rem" }}>
-        <h1>Signup</h1>
-
-        <form onSubmit={handleSubmit}>
-
-            {/* Username */}
-            <div>
-                <label>Username</label>
-                <br />
-
-                <input
-                    type="text"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    required
-                />
-            </div>
-
-            <br />
-
-            {/* Email */}
-            <div>
-                <label>Email</label>
-                <br />
-
-                <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                />
-            </div>
-
-            <br />
-
-            {/* Password */}
-            <div>
-                <label>Password</label>
-                <br />
-
-                <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                />
-            </div>
-
-            <br />
-
-            {/* Display backend validation errors */}
-            {error && (
-                <p style={{ color: "red" }}>
-                    {error}
+    return (
+        <div className="auth-page">
+            <div className="auth-theme"><ThemeToggle /></div>
+            <div className="auth-card panel">
+                <svg className="trail" viewBox="0 0 150 60" aria-hidden="true">
+                    <path d="M4 52 C 30 4, 70 66, 100 30 S 130 8, 140 14" fill="none" stroke="var(--ink)" strokeWidth="3" strokeDasharray="2 9" strokeLinecap="round" />
+                </svg>
+                <div className="brand">
+                    <PaperPlane size={44} />
+                    <span className="brand-name">Chit-Chat</span>
+                </div>
+                <h1>Join the flight</h1>
+                <form onSubmit={handleSubmit}>
+                    <div className="field">
+                        <label htmlFor="username">Username</label>
+                        <input id="username" type="text" name="username" value={formData.username} onChange={handleChange} required />
+                    </div>
+                    <div className="field">
+                        <label htmlFor="email">Email</label>
+                        <input id="email" type="email" name="email" value={formData.email} onChange={handleChange} required />
+                    </div>
+                    <div className="field">
+                        <label htmlFor="password">Password</label>
+                        <input id="password" type="password" name="password" value={formData.password} onChange={handleChange} required />
+                    </div>
+                    {error && <p className="error">{error}</p>}
+                    <button type="submit" className="pink" disabled={loading}>
+                        {loading ? "Creating account..." : "Create account"}
+                    </button>
+                </form>
+                <p className="switch">
+                    Already flying with us? <Link to="/login">Log in</Link>
                 </p>
-            )}
-
-            <button
-                type="submit"
-                disabled={loading}
-            >
-                {loading
-                    ? "Creating Account..."
-                    : "Create Account"}
-            </button>
-
-        </form>
-
-        <br />
-
-        <p>
-            Already have an account?{" "}
-            <Link to="/login">
-                Login
-            </Link>
-        </p>
-
+            </div>
         </div>
-    
-);
+    );
 }
 
 export default Signup;
