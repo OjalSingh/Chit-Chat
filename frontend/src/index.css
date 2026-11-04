@@ -76,6 +76,9 @@ body {
   color: var(--ink);
   background-color: #5db8ff;
   background-image: var(--bg-image);
+  background-size: var(--bg-size, auto);
+  background-position: var(--bg-pos, 0 0);
+  background-repeat: var(--bg-repeat, repeat);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
 }
@@ -1424,4 +1427,393 @@ select {
   border-radius: 14px;
   background: var(--sun);
   color: #1b2a6b;
+}
+
+/* ---------- Mark per theme ---------- */
+
+.mark {
+  display: inline-block;
+  flex: none;
+  line-height: 0;
+}
+
+.mark svg {
+  display: none;
+}
+
+.mark .m-plane {
+  display: block;
+}
+
+:root[data-theme="flap"] .mark:not(.fixed) .m-plane,
+:root[data-theme="pet"] .mark:not(.fixed) .m-plane {
+  display: none;
+}
+
+:root[data-theme="flap"] .mark:not(.fixed) .m-bird,
+:root[data-theme="pet"] .mark:not(.fixed) .m-cat {
+  display: block;
+}
+
+.mark .m-bird {
+  image-rendering: pixelated;
+}
+
+.brand .mark {
+  transform: rotate(-8deg);
+}
+
+/* ---------- Theme: Flap (pixel sky, pipes, ground) ---------- */
+
+:root[data-theme="flap"] {
+  --ink: #2b2b2b;
+  --ink-soft: #4d6b6f;
+  --paper: #ffffff;
+  --panel: #fffbe8;
+  --panel-2: #def5f0;
+  --line: #2b2b2b;
+  --pink: #ff8a6b;
+  --sun: #f8d838;
+  --lime: #8fdc3c;
+  --blue: #4ec0ca;
+  --danger: #d6204f;
+  --mine: #f8e878;
+  --shadow: #2b2b2b;
+  --bg-image:
+    /* ground: dirt, then striped grass on top */
+    linear-gradient(#ded895, #ded895),
+    repeating-linear-gradient(135deg, #73bf2e 0 10px, #9be34a 10px 20px),
+    /* pipes, each a cap on a shaft */
+    linear-gradient(90deg, #2b4a12 0 3px, #73bf2e 3px 10px, #9be34a 10px 14px, #73bf2e 14px 34px, #4f8a1c 34px 40px, #2b4a12 40px 43px),
+    linear-gradient(90deg, #2b4a12 0 3px, #73bf2e 3px 6px, #9be34a 6px 12px, #73bf2e 12px 30px, #4f8a1c 30px 38px, #2b4a12 38px 41px),
+    linear-gradient(90deg, #2b4a12 0 3px, #73bf2e 3px 10px, #9be34a 10px 14px, #73bf2e 14px 34px, #4f8a1c 34px 40px, #2b4a12 40px 43px),
+    linear-gradient(90deg, #2b4a12 0 3px, #73bf2e 3px 6px, #9be34a 6px 12px, #73bf2e 12px 30px, #4f8a1c 30px 38px, #2b4a12 38px 41px),
+    /* pixel clouds */
+    linear-gradient(#fff, #fff),
+    linear-gradient(#fff, #fff),
+    linear-gradient(#fff, #fff),
+    linear-gradient(#fff, #fff),
+    linear-gradient(180deg, #4ec0ca 0%, #70d6dc 65%, #a8ece4 100%);
+  --bg-size:
+    100% 70px, 100% 14px,
+    86px 190px, 86px 150px, 86px 230px, 86px 120px,
+    120px 24px, 72px 24px, 150px 24px, 90px 24px,
+    100% 100%;
+  --bg-pos:
+    0 100%, 0 calc(100% - 70px),
+    3% calc(100% - 84px), 11% calc(100% - 84px), 90% calc(100% - 84px), 97% calc(100% - 84px),
+    14% 20%, 20% calc(20% + 24px), 76% 12%, 84% calc(12% + 24px),
+    0 0;
+  --bg-repeat: no-repeat, repeat-x, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  color-scheme: light;
+}
+
+:root[data-theme="flap"] h1,
+:root[data-theme="flap"] h2,
+:root[data-theme="flap"] h3,
+:root[data-theme="flap"] .brand-name {
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+:root[data-theme="flap"] h1 { font-size: 1.35rem; }
+:root[data-theme="flap"] h2 { font-size: 0.95rem; }
+:root[data-theme="flap"] h3 { font-size: 0.8rem; }
+:root[data-theme="flap"] .brand-name { font-size: 1.05rem; }
+
+:root[data-theme="flap"] button,
+:root[data-theme="flap"] .tabs button,
+:root[data-theme="flap"] a.btn {
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-weight: 400;
+  font-size: 0.62rem;
+  line-height: 1.4;
+  text-transform: uppercase;
+  border-radius: 4px;
+  border-width: 3px;
+  background: var(--sun);
+  box-shadow: 0 4px 0 var(--shadow), inset 0 3px 0 #ffffffaa;
+}
+
+:root[data-theme="flap"] button.pink { background: var(--pink); }
+:root[data-theme="flap"] button.blue { background: var(--blue); color: #fff; text-shadow: 2px 2px 0 #2b2b2b; }
+:root[data-theme="flap"] button.lime { background: var(--lime); }
+:root[data-theme="flap"] button.plain { background: var(--panel); }
+:root[data-theme="flap"] button.small { font-size: 0.55rem; padding: 4px 9px; }
+
+:root[data-theme="flap"] .panel,
+:root[data-theme="flap"] .row,
+:root[data-theme="flap"] .ticket,
+:root[data-theme="flap"] .modal,
+:root[data-theme="flap"] .toast,
+:root[data-theme="flap"] .msg,
+:root[data-theme="flap"] .invite-row,
+:root[data-theme="flap"] .seg,
+:root[data-theme="flap"] .theme-toggle,
+:root[data-theme="flap"] input,
+:root[data-theme="flap"] select,
+:root[data-theme="flap"] textarea {
+  border-radius: 6px;
+}
+
+:root[data-theme="flap"] .panel {
+  box-shadow: 6px 6px 0 var(--shadow);
+}
+
+:root[data-theme="flap"] .tabs button.on,
+:root[data-theme="flap"] .theme-toggle button.on {
+  background: var(--sun);
+  color: #2b2b2b;
+}
+
+:root[data-theme="flap"] .brand .mark {
+  transform: none;
+  animation: flap-bob 1.1s steps(2, end) infinite;
+}
+
+@keyframes flap-bob {
+  50% { transform: translateY(-3px); }
+}
+
+/* ---------- Theme: Pet (cartoon living room) ---------- */
+
+:root[data-theme="pet"] {
+  --ink: #4a2a12;
+  --ink-soft: #8a5a36;
+  --paper: #fff4de;
+  --panel: #fff8ec;
+  --panel-2: #ffe8c4;
+  --line: #4a2a12;
+  --pink: #ff8fa3;
+  --sun: #ffb347;
+  --lime: #8fd694;
+  --blue: #3fb0c4;
+  --danger: #d6204f;
+  --mine: #ffd9a0;
+  --shadow: #4a2a12;
+  --bg-image:
+    /* floor boards and baseboard */
+    repeating-linear-gradient(90deg, #00000022 0 3px, transparent 3px 120px),
+    linear-gradient(#b9763a, #b9763a),
+    linear-gradient(#8a5324, #8a5324),
+    /* window: panes, cross, glass */
+    linear-gradient(90deg, transparent 0 58px, #fff 58px 66px, transparent 66px 100%),
+    linear-gradient(180deg, transparent 0 58px, #fff 58px 66px, transparent 66px 100%),
+    linear-gradient(180deg, #8fdcf0 0%, #d6f3fa 100%),
+    linear-gradient(#fff, #fff),
+    /* striped wallpaper */
+    repeating-linear-gradient(90deg, #ffd9a0 0 36px, #ffcb85 36px 72px);
+  --bg-size:
+    100% 90px,
+    100% 90px,
+    100% 14px,
+    124px 124px, 124px 124px, 112px 112px, 132px 132px,
+    100% 100%;
+  --bg-pos:
+    0 100%, 0 100%, 0 calc(100% - 90px),
+    calc(100% - 7%) 11%, calc(100% - 7%) 11%, calc(100% - 7% - 6px) calc(11% + 6px), calc(100% - 7% + 4px) calc(11% - 4px),
+    0 0;
+  --bg-repeat: repeat-x, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat;
+  color-scheme: light;
+}
+
+:root[data-theme="pet"] h1,
+:root[data-theme="pet"] h2,
+:root[data-theme="pet"] h3,
+:root[data-theme="pet"] .brand-name {
+  font-weight: 600;
+  text-shadow: 0 2px 0 #ffffff99;
+}
+
+:root[data-theme="pet"] button {
+  font-weight: 800;
+  background: linear-gradient(180deg, #fff 0%, #fff 12%, var(--sun) 13%, var(--sun) 100%);
+}
+
+:root[data-theme="pet"] .panel {
+  border-radius: 28px;
+  border-width: 3.5px;
+  box-shadow: 0 7px 0 var(--shadow);
+}
+
+:root[data-theme="pet"] .row,
+:root[data-theme="pet"] .ticket,
+:root[data-theme="pet"] .modal,
+:root[data-theme="pet"] .msg,
+:root[data-theme="pet"] .invite-row {
+  border-radius: 22px;
+}
+
+:root[data-theme="pet"] input[type="text"],
+:root[data-theme="pet"] input[type="email"],
+:root[data-theme="pet"] input[type="password"],
+:root[data-theme="pet"] input[type="datetime-local"] {
+  color: var(--ink);
+  background: #fffdf7;
+}
+
+:root[data-theme="pet"] input::placeholder {
+  color: #b08a68;
+}
+
+:root[data-theme="pet"] .brand .mark {
+  transform: none;
+  animation: pet-wiggle 2.6s ease-in-out infinite;
+}
+
+@keyframes pet-wiggle {
+  0%, 70%, 100% { transform: rotate(0); }
+  78% { transform: rotate(-9deg); }
+  86% { transform: rotate(8deg); }
+  94% { transform: rotate(-4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="flap"] .brand .mark,
+  :root[data-theme="pet"] .brand .mark {
+    animation: none;
+  }
+}
+
+/* Four theme buttons need room on small screens. */
+@media (max-width: 560px) {
+  .theme-toggle button {
+    padding: 4px 9px;
+    font-size: 0.8rem;
+  }
+  :root[data-theme="flap"] .theme-toggle button {
+    font-size: 0.5rem;
+    padding: 5px 7px;
+  }
+}
+
+/* ---------- Pixel avatars ---------- */
+
+.avatar.pixel {
+  border: 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel-2) 80%, #fff);
+  outline: 2.5px solid var(--line);
+  overflow: visible;
+}
+
+.avatar.pixel svg {
+  width: 82%;
+  height: 82%;
+  image-rendering: pixelated;
+}
+
+.avatar.pixel .dot {
+  border-radius: 3px;
+}
+
+.avatar.pixel .dot.on {
+  animation: blink-on 1.6s steps(2, end) infinite;
+}
+
+@keyframes blink-on {
+  50% { filter: brightness(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar.pixel .dot.on { animation: none; }
+}
+
+/* ---------- Pip, the mascot ---------- */
+
+.mascot {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.pip {
+  position: relative;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  animation: pip-bob 2.4s ease-in-out infinite;
+}
+
+.pip:hover:not(:disabled),
+.pip:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+.pip svg {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 6px 0 #1b2a6b33);
+}
+
+.pip.happy,
+.pip.wow {
+  animation: pip-hop 0.5s steps(6, end) 1;
+}
+
+.pip.wow svg {
+  animation: pip-spin 0.9s steps(8, end) 1;
+}
+
+@keyframes pip-bob {
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pip-hop {
+  40% { transform: translateY(-26px); }
+}
+
+@keyframes pip-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pip-line {
+  min-height: 1.4em;
+  font-weight: 800;
+  text-align: center;
+}
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.confetti i {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  width: 8px;
+  height: 8px;
+  background: var(--pink);
+  animation: confetti-pop 0.9s steps(8, end) 1 forwards;
+}
+
+.confetti i:nth-child(2) { background: var(--lime); --dx: 46px; --dy: -50px; }
+.confetti i:nth-child(3) { background: var(--blue); --dx: -50px; --dy: -42px; }
+.confetti i:nth-child(4) { background: var(--sun); --dx: 24px; --dy: -70px; }
+.confetti i:nth-child(5) { background: var(--pink); --dx: -26px; --dy: -64px; }
+.confetti i:nth-child(1) { --dx: 0px; --dy: -80px; }
+
+@keyframes confetti-pop {
+  from { transform: translate(0, 0); opacity: 1; }
+  to { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pip, .pip.happy, .pip.wow, .pip.wow svg, .confetti i { animation: none; }
+}
+
+/* Pip is a drawing, not a button: keep every theme's button styling off it. */
+:root[data-theme] button.pip {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
 }

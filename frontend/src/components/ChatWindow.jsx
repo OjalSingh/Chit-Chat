@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import PlanCard from "./PlanCard";
-import PaperPlane from "./PaperPlane";
+import Mascot from "./Mascot";
 import NewPlanForm from "./NewPlanForm";
 
 /*
@@ -93,7 +93,7 @@ function ChatWindow({
             <div className="scroll">
                 {!hasChat ? (
                     <div className="empty">
-                        <PaperPlane size={72} />
+                        <Mascot name={currentUser?.username} />
                         <h3>Ready for take-off</h3>
                         <p className="muted">Pick someone from your crew or a room and send your first note.</p>
                     </div>

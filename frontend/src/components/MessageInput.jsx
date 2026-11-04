@@ -16,7 +16,7 @@ function MessageInput({ value, onChange, onSend, disabled }) {
                 aria-label="Message"
             />
             <button className="pink" onClick={onSend} disabled={disabled} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                Send <PaperPlane size={20} />
+                Send <PaperPlane size={20} fixed />
             </button>
         </div>
     );
