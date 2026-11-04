@@ -673,19 +673,21 @@ A plan can carry an `https` call link (Meet, Zoom, Discord). The ticket shows a 
 
 ### Group chats
 
-Friends can be pulled into named groups of up to 100 members. The creator is the first admin, admins add or remove people, anyone can leave, and the longest-standing member is promoted if the last admin leaves.
+Friends can be invited to named groups of up to 100 members. Nobody is added without saying yes: an invite shows only the room's name, who asked and how many are in, and the room stays closed until the invitee accepts. The creator is the first admin, admins invite or remove people, anyone can leave, and the longest-standing member is promoted if the last admin leaves.
 
 | Method | Route | Who |
 |--------|-------|-----|
-| POST | `/api/groups` | anyone (members must be your friends) |
+| POST | `/api/groups` | anyone (invites your friends; they join when they accept) |
+| GET | `/api/groups/invites` | rooms you were invited to |
+| POST | `/api/groups/:groupId/accept` / `decline` | the invited person only |
 | GET | `/api/groups` | your groups, most active first |
 | GET | `/api/groups/:groupId` | members |
 | PATCH | `/api/groups/:groupId` | admins (rename) |
 | GET / POST | `/api/groups/:groupId/messages` | members |
-| POST | `/api/groups/:groupId/members` | admins |
+| POST | `/api/groups/:groupId/members` | admins (sends invites) |
 | DELETE | `/api/groups/:groupId/members/:userId` | admins, or yourself to leave |
 
-Realtime: each socket joins a `group:<id>` room for every group on connect, and is added to new groups' rooms immediately. Events are `newGroupMessage` (to everyone in the room except the sender), `groupAdded`, `groupUpdated` and `groupRemoved`.
+Realtime: each socket joins a `group:<id>` room for every group on connect, and is added to new groups' rooms immediately. Events are `newGroupMessage` (to everyone in the room except the sender), `groupInvite` (to the invited person), `groupUpdated` and `groupRemoved`.
 
 ### Tests
 
@@ -766,12 +768,14 @@ The frontend talks to `http://localhost:3000` by default. For a deploy, set `VIT
 
 | Method | Endpoint | Description |
 | ------ | -------- | ----------- |
-| POST | `/api/groups` | Create a group from your friends. Body `{ name, memberIds }`. |
+| POST | `/api/groups` | Create a group and invite friends. Body `{ name, memberIds }`. |
+| GET | `/api/groups/invites` | Rooms you've been invited to. |
+| POST | `/api/groups/:groupId/accept`, `/decline` | Answer an invite. |
 | GET | `/api/groups` | Your groups. |
 | GET | `/api/groups/:groupId` | One group, if you are a member. |
 | PATCH | `/api/groups/:groupId` | Rename (admins). |
 | GET / POST | `/api/groups/:groupId/messages` | Read or send group messages. |
-| POST | `/api/groups/:groupId/members` | Add friends (admins). |
+| POST | `/api/groups/:groupId/members` | Invite friends (admins). |
 | DELETE | `/api/groups/:groupId/members/:userId` | Remove a member, or leave. |
 
 ## Plans

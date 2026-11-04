@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { ownerWithFriends, signupUser } from "./helpers.js";
+import { createGroupAndJoin, ownerWithFriends, signupUser } from "./helpers.js";
 
 const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
 async function makeGroup(n = 2) {
   const { owner, friends } = await ownerWithFriends(n);
-  const group = (
-    await owner.agent.post("/api/groups").send({ name: "Weekend crew", memberIds: friends.map((f) => f.user._id) })
-  ).body;
+  const group = await createGroupAndJoin(owner, friends, "Weekend crew");
   return { owner, friends, group };
 }
 

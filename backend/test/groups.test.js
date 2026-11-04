@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ownerWithFriends, signupUser } from "./helpers.js";
+import { createGroupAndJoin, ownerWithFriends, signupUser } from "./helpers.js";
 
 async function makeGroup(n = 2, name = "Trek club") {
   const { owner, friends } = await ownerWithFriends(n);
-  const res = await owner.agent
-    .post("/api/groups")
-    .send({ name, memberIds: friends.map((f) => f.user._id) })
-    .expect(201);
-  return { owner, friends, group: res.body };
+  const group = await createGroupAndJoin(owner, friends, name);
+  return { owner, friends, group };
 }
 
 describe("creating groups", () => {
@@ -50,7 +47,71 @@ describe("creating groups", () => {
       .post("/api/groups")
       .send({ name: "dupes", memberIds: [id, id, owner.user._id] })
       .expect(201);
-    expect(res.body.members).toHaveLength(2);
+    expect(res.body.members).toHaveLength(1);
+    expect(res.body.invited).toEqual([id]);
+  });
+});
+
+describe("invites", () => {
+  it("keeps invited people out until they say yes", async () => {
+    const { owner, friends } = await ownerWithFriends(1);
+    const [pal] = friends;
+    const created = await owner.agent
+      .post("/api/groups")
+      .send({ name: "Reunion", memberIds: [pal.user._id] })
+      .expect(201);
+    const id = created.body._id;
+    expect(created.body.members.map((m) => m._id)).toEqual([owner.user._id]);
+
+    // not a member yet: no group in their list, no access to anything inside
+    expect((await pal.agent.get("/api/groups").expect(200)).body).toEqual([]);
+    await pal.agent.get(`/api/groups/${id}`).expect(403);
+    await pal.agent.get(`/api/groups/${id}/messages`).expect(403);
+    await pal.agent.post(`/api/groups/${id}/messages`).send({ text: "hi" }).expect(403);
+
+    // they can see the invite, but only the name, who asked and how many are in
+    const invites = (await pal.agent.get("/api/groups/invites").expect(200)).body;
+    expect(invites).toEqual([
+      { _id: id, name: "Reunion", invitedBy: owner.user.username, memberCount: 1 },
+    ]);
+
+    const joined = await pal.agent.post(`/api/groups/${id}/accept`).expect(200);
+    expect(joined.body.members.map((m) => m._id).sort()).toEqual([owner.user._id, pal.user._id].sort());
+    expect((await pal.agent.get("/api/groups/invites").expect(200)).body).toEqual([]);
+    await pal.agent.get(`/api/groups/${id}/messages`).expect(200);
+  });
+
+  it("lets people decline, and only the invited person can answer", async () => {
+    const { owner, friends } = await ownerWithFriends(2);
+    const created = await owner.agent
+      .post("/api/groups")
+      .send({ name: "Nope", memberIds: [friends[0].user._id] })
+      .expect(201);
+    const id = created.body._id;
+
+    // someone not invited, and the person who sent the invite, can't accept for them
+    await friends[1].agent.post(`/api/groups/${id}/accept`).expect(404);
+    await owner.agent.post(`/api/groups/${id}/accept`).expect(404);
+
+    await friends[0].agent.post(`/api/groups/${id}/decline`).expect(200);
+    await friends[0].agent.post(`/api/groups/${id}/accept`).expect(404); // invite is gone
+    await friends[0].agent.get(`/api/groups/${id}`).expect(403);
+  });
+
+  it("accepting twice does not add anyone twice", async () => {
+    const { owner, friends } = await ownerWithFriends(1);
+    const created = await owner.agent
+      .post("/api/groups")
+      .send({ name: "Twice", memberIds: [friends[0].user._id] })
+      .expect(201);
+    const id = created.body._id;
+    await Promise.all([
+      friends[0].agent.post(`/api/groups/${id}/accept`),
+      friends[0].agent.post(`/api/groups/${id}/accept`),
+    ]);
+    const group = (await owner.agent.get(`/api/groups/${id}`).expect(200)).body;
+    expect(group.members).toHaveLength(2);
+    expect(group.invited).toEqual([]);
   });
 });
 
@@ -113,16 +174,18 @@ describe("group messages", () => {
 describe("managing members", () => {
   it("lets an admin add their friends", async () => {
     const { owner, friends } = await ownerWithFriends(2);
-    const created = await owner.agent
-      .post("/api/groups")
-      .send({ name: "g", memberIds: [friends[0].user._id] })
-      .expect(201);
+    const group = await createGroupAndJoin(owner, [friends[0]], "g");
 
+    // adding someone sends an invite; they join only once they accept
     const res = await owner.agent
-      .post(`/api/groups/${created.body._id}/members`)
+      .post(`/api/groups/${group._id}/members`)
       .send({ memberIds: [friends[1].user._id] })
       .expect(200);
-    expect(res.body.members).toHaveLength(3);
+    expect(res.body.members).toHaveLength(2);
+    expect(res.body.invited).toEqual([friends[1].user._id]);
+
+    const joined = await friends[1].agent.post(`/api/groups/${group._id}/accept`).expect(200);
+    expect(joined.body.members).toHaveLength(3);
   });
 
   it("stops non-admins from adding or removing others", async () => {

@@ -8,6 +8,9 @@ import {
     addMembers,
     removeMember,
     renameGroup,
+    getMyInvites,
+    acceptInvite,
+    declineInvite,
 } from "../controllers/group.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
@@ -24,6 +27,10 @@ router.get("/", getMyGroups);
 
 router.param("groupId", (req, res, next) => validateObjectId("groupId")(req, res, next));
 router.param("userId", (req, res, next) => validateObjectId("userId")(req, res, next));
+
+router.get("/invites", getMyInvites);
+router.post("/:groupId/accept", acceptInvite);
+router.post("/:groupId/decline", declineInvite);
 
 router.get("/:groupId", getGroup);
 router.patch("/:groupId", renameGroup);

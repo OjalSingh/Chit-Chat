@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getMessages, sendMessage, } from "../api/messages";
 import { verify, logout } from "../api/auth";
 import { getFriends } from "../api/friends";
-import { getGroups, createGroup, getGroupMessages, sendGroupMessage, leaveGroup } from "../api/groups";
+import { getGroups, getInvites, acceptInvite, declineInvite, createGroup, getGroupMessages, sendGroupMessage, leaveGroup } from "../api/groups";
 import GroupList from "../components/GroupList";
 import { getPlans, createPlan, detectPlan, rsvpPlan } from "../api/plans";
 import { useNavigate, } from "react-router-dom";
@@ -40,6 +40,8 @@ function Chat() {
     const [friends, setFriends] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [groups, setGroups] = useState([]);
+    // Rooms the user was asked to join and hasn't answered yet.
+    const [invites, setInvites] = useState([]);
     // At most one of selectedUser / selectedGroup is set at a time.
     const [selectedGroup, setSelectedGroup] = useState(null);
     // Open Plan cards for the selected group.
@@ -66,6 +68,7 @@ function Chat() {
         loadCurrentUser();
         loadFriends();
         loadGroups();
+        getInvites().then(setInvites).catch(() => {});
     }, []);
 
     /*
@@ -85,6 +88,10 @@ function Chat() {
         };
         const handleGroupAdded = (group) =>
             setGroups((prev) => (prev.some((g) => g._id === group._id) ? prev : [group, ...prev]));
+        const handleGroupInvite = (invite) => {
+            setInvites((prev) => (prev.some((i) => i._id === invite._id) ? prev : [invite, ...prev]));
+            setTab("rooms");
+        };
         const handleGroupUpdated = (group) => {
             setGroups((prev) => prev.map((g) => (g._id === group._id ? group : g)));
             setSelectedGroup((current) => (current?._id === group._id ? group : current));
@@ -115,6 +122,7 @@ function Chat() {
         socket.on("plan:update", handlePlan);
         socket.on("newGroupMessage", handleGroupMessage);
         socket.on("groupAdded", handleGroupAdded);
+        socket.on("groupInvite", handleGroupInvite);
         socket.on("groupUpdated", handleGroupUpdated);
         socket.on("groupRemoved", handleGroupRemoved);
         return () => {
@@ -123,6 +131,7 @@ function Chat() {
             socket.off("plan:update", handlePlan);
             socket.off("newGroupMessage", handleGroupMessage);
             socket.off("groupAdded", handleGroupAdded);
+            socket.off("groupInvite", handleGroupInvite);
             socket.off("groupUpdated", handleGroupUpdated);
             socket.off("groupRemoved", handleGroupRemoved);
         };
@@ -252,6 +261,18 @@ function Chat() {
         const group = await createGroup(name, memberIds);
         setGroups((prev) => [group, ...prev]);
         openGroup(group);
+    };
+
+    const handleAcceptInvite = async (groupId) => {
+        const group = await acceptInvite(groupId);
+        setInvites((prev) => prev.filter((i) => i._id !== groupId));
+        setGroups((prev) => (prev.some((g) => g._id === group._id) ? prev : [group, ...prev]));
+        openGroup(group);
+    };
+
+    const handleDeclineInvite = async (groupId) => {
+        await declineInvite(groupId);
+        setInvites((prev) => prev.filter((i) => i._id !== groupId));
     };
 
     const openGroup = async (group) => {
@@ -451,6 +472,9 @@ function Chat() {
                         {tab === "rooms" && (
                             <GroupList
                                 groups={groups}
+                                invites={invites}
+                                onAccept={handleAcceptInvite}
+                                onDecline={handleDeclineInvite}
                                 friends={friends}
                                 selectedGroup={selectedGroup}
                                 onSelectGroup={(g) => {

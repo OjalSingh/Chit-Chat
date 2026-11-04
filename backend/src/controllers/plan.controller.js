@@ -91,6 +91,26 @@ export const listPlans = handle("listPlans", async (req, res) => {
     res.status(200).json(plans);
 });
 
+/* A poll option is a plain label, or { label?, startsAt? } with a real date. */
+const parseOption = (raw) => {
+    if (typeof raw === "string") {
+        const label = clean(raw, 80);
+        return label ? { label } : null;
+    }
+    if (!raw || typeof raw !== "object") return "invalid";
+    const startsAt = parseDate(raw.startsAt);
+    if (startsAt === "invalid") return "invalid";
+    const label =
+        clean(raw.label, 80) ||
+        (startsAt
+            ? startsAt.toLocaleString("en-IN", {
+                  weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                  timeZone: process.env.GAME_TIMEZONE || "Asia/Kolkata",
+              })
+            : null);
+    return label ? { label, startsAt: startsAt ?? undefined } : null;
+};
+
 /*
  * POST /api/groups/:groupId/plans
  * Body: { title, where?, whenText?, startsAt?, meetLink?, game?, timeOptions?: [label, ...] }
@@ -116,6 +136,13 @@ export const createPlan = handle("createPlan", async (req, res) => {
         return res.status(400).json({ message: `At most ${PLAN_LIMITS.maxTimeOptions} time options` });
     }
 
+    const options = [];
+    for (const raw of labels) {
+        const opt = parseOption(raw);
+        if (opt === "invalid") return res.status(400).json({ message: "Each time option needs a valid date or label" });
+        if (opt) options.push(opt);
+    }
+
     const plan = await Plan.create({
         groupId: group._id,
         title,
@@ -124,7 +151,7 @@ export const createPlan = handle("createPlan", async (req, res) => {
         startsAt: startsAt ?? undefined,
         meetLink: meetLink ?? "",
         game: game ?? undefined,
-        timeOptions: labels.map((l) => clean(l, 80)).filter(Boolean).map((label) => ({ label })),
+        timeOptions: options,
         rsvps: [{ userId: req.user._id, status: "going" }],
         createdBy: req.user._id,
         source: "member",
@@ -252,6 +279,14 @@ export const updatePlan = handle("updatePlan", async (req, res) => {
         const d = parseDate(startsAt);
         if (d === "invalid") return res.status(400).json({ message: "Invalid startsAt" });
         plan.startsAt = d ?? undefined;
+    }
+    if (req.body.addTimeOption !== undefined) {
+        const opt = parseOption(req.body.addTimeOption);
+        if (!opt || opt === "invalid") return res.status(400).json({ message: "That time option isn't valid" });
+        if (plan.timeOptions.length >= PLAN_LIMITS.maxTimeOptions) {
+            return res.status(400).json({ message: `At most ${PLAN_LIMITS.maxTimeOptions} time options` });
+        }
+        plan.timeOptions.push(opt);
     }
     if (pickOptionId !== undefined) {
         const option = mongoose.isValidObjectId(pickOptionId) && plan.timeOptions.id(pickOptionId);

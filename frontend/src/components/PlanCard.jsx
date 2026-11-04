@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { rsvpPlan, votePlan, updatePlan } from "../api/plans";
 import GamePicker, { gameForApi } from "./GamePicker";
 import SessionForm from "./SessionForm";
+import TimePicker from "./TimePicker";
+import { prettyWhen, toLocalInput } from "../lib/when";
 
 const STATUSES = [
     ["going", "Going"],
@@ -69,6 +71,67 @@ function CallRow({ plan, onSave }) {
             >
                 {plan.meetLink ? "Change link" : "Add call link"}
             </button>
+        </div>
+    );
+}
+
+/* Change the time, or add one more option to the vote. */
+function TimeRow({ plan, onSave }) {
+    const [mode, setMode] = useState(null); // null | "change" | "option"
+    const [value, setValue] = useState("");
+    const [error, setError] = useState("");
+
+    const save = async () => {
+        if (!value) return setError("Pick a date and time first.");
+        const iso = new Date(value).toISOString();
+        try {
+            setError("");
+            await onSave(
+                mode === "change"
+                    ? { startsAt: iso, whenText: prettyWhen(value) }
+                    : { addTimeOption: { label: prettyWhen(value), startsAt: iso } }
+            );
+            setMode(null);
+        } catch (err) {
+            setError(err.response?.data?.message || "Couldn't save the time.");
+        }
+    };
+
+    if (mode) {
+        return (
+            <div style={{ display: "grid", gap: "6px" }}>
+                <TimePicker value={value} onChange={setValue} label={mode === "change" ? "New time" : "Time to add to the vote"} />
+                <div className="vote-row">
+                    <button className="small lime" onClick={save}>{mode === "change" ? "Save time" : "Add to vote"}</button>
+                    <button className="small plain" onClick={() => setMode(null)}>Cancel</button>
+                </div>
+                {error && <small className="error">{error}</small>}
+            </div>
+        );
+    }
+
+    return (
+        <div className="vote-row">
+            <button
+                className="small plain"
+                onClick={() => {
+                    setValue(plan.startsAt ? toLocalInput(plan.startsAt) : "");
+                    setMode("change");
+                }}
+            >
+                {plan.startsAt || plan.whenText ? "Change time" : "Set time"}
+            </button>
+            {plan.timeOptions.length < 5 && (
+                <button
+                    className="small plain"
+                    onClick={() => {
+                        setValue("");
+                        setMode("option");
+                    }}
+                >
+                    + Vote option
+                </button>
+            )}
         </div>
     );
 }
@@ -215,6 +278,7 @@ function PlanCard({ plan, members, group, currentUser, onChange }) {
                     </div>
                 )}
 
+                <TimeRow plan={plan} onSave={act2((changes) => updatePlan(plan._id, changes))} />
                 <GameRow plan={plan} onSave={act2((game) => updatePlan(plan._id, { game }))} />
                 <CallRow plan={plan} onSave={act2((meetLink) => updatePlan(plan._id, { meetLink }))} />
 

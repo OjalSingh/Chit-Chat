@@ -1364,3 +1364,64 @@ select {
 .dist-row small {
   white-space: nowrap;
 }
+
+/* Time picker, the fixed/poll switch and poll options */
+.timepicker {
+  display: grid;
+  gap: 6px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.seg {
+  display: inline-flex;
+  border: 2.5px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.seg button {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: #fff;
+  color: #1b2a6b;
+  padding: 6px 14px;
+}
+
+.seg button.on {
+  background: var(--sun);
+  font-weight: 800;
+}
+
+.poll-options {
+  display: grid;
+  gap: 10px;
+}
+
+.poll-option {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.poll-option .timepicker {
+  flex: 1;
+  min-width: 0;
+}
+
+.invite-row {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 2.5px dashed var(--line);
+  border-radius: 14px;
+  background: var(--sun);
+  color: #1b2a6b;
+}

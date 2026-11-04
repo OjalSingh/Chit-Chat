@@ -42,6 +42,17 @@ const loadGroupForMember = async (req, res) => {
     return group;
 };
 
+/* What an invited person sees: enough to decide, nothing from inside the group. */
+const invitePayload = async (group) => {
+    await group.populate("createdBy", "username");
+    return {
+        _id: group._id,
+        name: group.name,
+        invitedBy: group.createdBy?.username ?? "someone",
+        memberCount: group.members.length,
+    };
+};
+
 const notifyMembers = (userIds, event, payload) => {
     for (const id of userIds) {
         const socketId = getReceiverSocketId(id.toString());
@@ -83,13 +94,14 @@ export const createGroup = async (req, res) => {
         const group = await Group.create({
             name,
             createdBy: req.user._id,
-            members: [req.user._id, ...others],
+            members: [req.user._id],
             admins: [req.user._id],
+            invited: others,
         });
         await group.populate("members", MEMBER_FIELDS);
 
-        joinGroupRoom(group.members.map((m) => m._id), group._id);
-        notifyMembers(others, "groupAdded", group);
+        joinGroupRoom([req.user._id], group._id);
+        notifyMembers(others, "groupInvite", await invitePayload(group));
 
         res.status(201).json(group);
     } catch (error) {
@@ -200,20 +212,19 @@ export const addMembers = async (req, res) => {
             return res.status(403).json({ message: "Only group admins can add members" });
         }
 
-        const newIds = memberIds.filter((id) => !group.hasMember(id));
+        const newIds = memberIds.filter((id) => !group.hasMember(id) && !group.hasInvite(id));
         if (nonFriends(req.user, newIds).length > 0) {
             return res.status(400).json({ message: "You can only add your friends to a group" });
         }
-        if (group.members.length + newIds.length > MAX_GROUP_MEMBERS) {
+        if (group.members.length + group.invited.length + newIds.length > MAX_GROUP_MEMBERS) {
             return res.status(400).json({ message: `Groups are limited to ${MAX_GROUP_MEMBERS} members` });
         }
 
-        group.members.push(...newIds);
+        group.invited.push(...newIds);
         await group.save();
         await group.populate("members", MEMBER_FIELDS);
 
-        joinGroupRoom(newIds, group._id);
-        notifyMembers(newIds, "groupAdded", group);
+        notifyMembers(newIds, "groupInvite", await invitePayload(group));
         io.to(groupRoom(group._id)).emit("groupUpdated", group);
 
         res.status(200).json(group);
@@ -222,6 +233,55 @@ export const addMembers = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
+/*
+ * GET /api/groups/invites
+ * Groups the caller has been asked to join.
+ */
+export const getMyInvites = async (req, res) => {
+    try {
+        const groups = await Group.find({ invited: req.user._id }).populate("createdBy", "username").sort({ updatedAt: -1 });
+        res.status(200).json(
+            groups.map((g) => ({
+                _id: g._id,
+                name: g.name,
+                invitedBy: g.createdBy?.username ?? "someone",
+                memberCount: g.members.length,
+            }))
+        );
+    } catch (error) {
+        console.log("Error in getMyInvites:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+/*
+ * POST /api/groups/:groupId/accept   |   POST /api/groups/:groupId/decline
+ * Only the invited person can answer. Joining is always their own choice.
+ */
+const answerInvite = (accept) => async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        // Atomic, so a double tap or a stale tab can't join twice.
+        const update = accept
+            ? { $pull: { invited: req.user._id }, $addToSet: { members: req.user._id } }
+            : { $pull: { invited: req.user._id } };
+        const group = await Group.findOneAndUpdate({ _id: groupId, invited: req.user._id }, update, { new: true });
+        if (!group) return res.status(404).json({ message: "No invite to that group" });
+
+        if (!accept) return res.status(200).json({ message: "Declined" });
+
+        await group.populate("members", MEMBER_FIELDS);
+        joinGroupRoom([req.user._id], group._id);
+        io.to(groupRoom(group._id)).emit("groupUpdated", group);
+        res.status(200).json(group);
+    } catch (error) {
+        console.log("Error in answerInvite:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+export const acceptInvite = answerInvite(true);
+export const declineInvite = answerInvite(false);
 
 /*
  * DELETE /api/groups/:groupId/members/:userId
