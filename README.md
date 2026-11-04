@@ -13,11 +13,16 @@
 
 - **Chat** one to one or in rooms, with live delivery and online presence.
 - **Plan** together. A plan is a ticket with what, where and when, a time poll, Going / Maybe / Can't, an optional call link and reminders 1 hour and 5 minutes before. With an Anthropic key, the AI can draft the ticket from the chat.
-- **Play** daily games and keep records. The first game is Word of the day, with streaks, averages and a room leaderboard that never spoils the answer.
+- **Play together.** Pick a game on the plan (skribbl.io, Gartic Phone, Codenames, Among Us, Jackbox and more, or your own link). The ticket carries a Play button or a room code next to the call link. Chit-Chat doesn't host these games; it gets the group into them without the planning.
+- **Keep the record.** After playing, press "We played" to log who was there, who won, a note and a screenshot of the scoreboard. Each room has a game history: who plays most, what you play, what's next.
+- **Daily game.** Word of the day is built in, with streaks, averages and a room leaderboard that never spoils the answer.
 - **Pick a look.** Two backgrounds (Sky and Night) in a paper-plane, Y2K style, with a layout that collapses to one column on phones.
 
 <p align="center">
-  <img src="docs/plan-reminder.png" width="49%" alt="Plan ticket with call link and a reminder" />
+  <img src="docs/plan-reminder.png" width="49%" alt="Plan ticket with game, call link and a reminder" />
+  <img src="docs/game-history.png" width="49%" alt="Room game history with who played, stats and scoreboard screenshots" />
+</p>
+<p align="center">
   <img src="docs/game-wordle.png" width="49%" alt="Word of the day with records and room leaderboard" />
 </p>
 
@@ -778,9 +783,21 @@ The frontend talks to `http://localhost:3000` by default. For a deploy, set `VIT
 | POST | `/api/groups/:groupId/plans/detect` | Ask the AI to read the chat now (503 without a key). |
 | POST | `/api/plans/:planId/rsvp` | `{ status: going / maybe / out }`. |
 | POST | `/api/plans/:planId/vote` | Toggle a vote on a time option. |
-| PATCH | `/api/plans/:planId` | Edit details, set `meetLink` (https only), lock in a time, or cancel. |
+| PATCH | `/api/plans/:planId` | Edit details, set `meetLink` (https only) or `game` (`{ name, url?, code? }`, `null` clears), lock in a time, or cancel. |
 
 Socket events: `plan:new`, `plan:update`, `plan:reminder`.
+
+## Game sessions
+
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| GET | `/api/games/catalog` | Link games a plan can point at. |
+| POST | `/api/groups/:groupId/sessions` | Log a game: `{ gameName, playerIds, winnerId?, note?, screenshot?, planId? }`. Players and winner must be members. Passing `planId` marks that plan done. |
+| GET | `/api/groups/:groupId/sessions` | Newest 50 sessions plus stats: games played and wins per member, and how often each game was played. |
+| GET | `/api/sessions/:sessionId/screenshot` | The scoreboard image (members only). |
+| DELETE | `/api/sessions/:sessionId` | Whoever logged it, or a group admin. |
+
+Screenshots are resized in the browser to a JPEG under about 750 KB and stored with the session, but the list endpoint never returns the image; it's fetched from its own endpoint, which only serves PNG, JPEG or WebP and sets `nosniff`. Socket events: `session:new`, `session:removed`.
 
 ## Games
 

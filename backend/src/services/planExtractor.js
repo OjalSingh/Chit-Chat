@@ -20,7 +20,7 @@ export const PLAN_SCHEMA = {
             description: "True only if several people are actively arranging a specific shared activity.",
         },
         confidence: { type: "number", description: "0 to 1." },
-        title: { type: "string", description: "Short name for the activity, e.g. 'Saturday trek'. Empty if none." },
+        title: { type: "string", description: "Short name for the activity, e.g. 'Saturday dinner'. Empty if none." },
         where: { type: "string", description: "Place, if mentioned. Empty if not." },
         when_text: { type: "string", description: "Agreed time in the chat's own words, e.g. 'Sat 7am'. Empty if not agreed." },
         starts_at: {

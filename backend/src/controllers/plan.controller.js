@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Group from "../models/Group.js";
 import Plan, { PLAN_LIMITS } from "../models/Plan.js";
 import { emitPlan } from "../services/planEvents.js";
+import { cleanHttpsUrl } from "../games/catalog.js";
 import { aiAvailable, detectPlan } from "../services/planDetector.js";
 
 const clean = (value, max) => (typeof value === "string" ? value.trim().slice(0, max) : undefined);
@@ -27,6 +28,21 @@ const parseLink = (value) => {
     } catch {
         return "invalid";
     }
+};
+
+/*
+ * A plan's game: { name, url?, code? }. null clears it. Returns undefined
+ * when not provided, null to clear, the cleaned game, or "invalid".
+ */
+const parseGame = (value) => {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (typeof value !== "object" || Array.isArray(value)) return "invalid";
+    const name = clean(value.name, 60);
+    const url = cleanHttpsUrl(value.url);
+    const code = clean(value.code, 30);
+    if (!name || url === "invalid") return "invalid";
+    return { name, ...(url ? { url } : {}), ...(code ? { code } : {}) };
 };
 
 /* Loads the group from :groupId and checks membership. */
@@ -77,7 +93,7 @@ export const listPlans = handle("listPlans", async (req, res) => {
 
 /*
  * POST /api/groups/:groupId/plans
- * Body: { title, where?, whenText?, startsAt?, meetLink?, timeOptions?: [label, ...] }
+ * Body: { title, where?, whenText?, startsAt?, meetLink?, game?, timeOptions?: [label, ...] }
  * A member starts a plan by hand. The creator is marked as going.
  */
 export const createPlan = handle("createPlan", async (req, res) => {
@@ -92,6 +108,9 @@ export const createPlan = handle("createPlan", async (req, res) => {
     const meetLink = parseLink(req.body.meetLink);
     if (meetLink === "invalid") return res.status(400).json({ message: "meetLink must be an https link" });
 
+    const game = parseGame(req.body.game);
+    if (game === "invalid") return res.status(400).json({ message: "game needs a name and an https link" });
+
     const labels = Array.isArray(req.body.timeOptions) ? req.body.timeOptions : [];
     if (labels.length > PLAN_LIMITS.maxTimeOptions) {
         return res.status(400).json({ message: `At most ${PLAN_LIMITS.maxTimeOptions} time options` });
@@ -104,6 +123,7 @@ export const createPlan = handle("createPlan", async (req, res) => {
         whenText: clean(req.body.whenText, 80) ?? "",
         startsAt: startsAt ?? undefined,
         meetLink: meetLink ?? "",
+        game: game ?? undefined,
         timeOptions: labels.map((l) => clean(l, 80)).filter(Boolean).map((label) => ({ label })),
         rsvps: [{ userId: req.user._id, status: "going" }],
         createdBy: req.user._id,
@@ -189,7 +209,7 @@ export const vote = handle("vote", async (req, res) => {
 
 /*
  * PATCH /api/plans/:planId
- * Body: any of { title, where, whenText, startsAt, meetLink, pickOptionId, status }
+ * Body: any of { title, where, whenText, startsAt, meetLink, game, pickOptionId, status }
  * Any member can fill in details (plans are collaborative). pickOptionId
  * locks in a time from the poll. Cancelling is limited to the creator and
  * group admins, except for AI suggestions, which any member can dismiss.
@@ -203,6 +223,9 @@ export const updatePlan = handle("updatePlan", async (req, res) => {
     const meetLink = parseLink(req.body.meetLink);
     if (meetLink === "invalid") return res.status(400).json({ message: "meetLink must be an https link" });
     if (meetLink !== undefined) plan.meetLink = meetLink;
+    const game = parseGame(req.body.game);
+    if (game === "invalid") return res.status(400).json({ message: "game needs a name and an https link" });
+    if (game !== undefined) plan.game = game ?? undefined;
 
     if (status !== undefined) {
         if (!["open", "cancelled"].includes(status)) {

@@ -13,6 +13,7 @@ import { protectRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
 import { validateObjectId } from "../middleware/validateObjectId.middleware.js";
 import { listPlans, createPlan, detectNow } from "../controllers/plan.controller.js";
+import { logSession, listSessions } from "../controllers/session.controller.js";
 
 const router = express.Router();
 
@@ -34,5 +35,8 @@ router.delete("/:groupId/members/:userId", removeMember);
 router.get("/:groupId/plans", listPlans);
 router.post("/:groupId/plans", createPlan);
 router.post("/:groupId/plans/detect", detectNow);
+
+router.get("/:groupId/sessions", listSessions);
+router.post("/:groupId/sessions", logSession);
 
 export default router;

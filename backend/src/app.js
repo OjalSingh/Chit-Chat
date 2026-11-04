@@ -9,6 +9,7 @@ import friendRoutes from "./routes/friend.route.js";
 import groupRoutes from "./routes/group.route.js";
 import planRoutes from "./routes/plan.route.js";
 import gameRoutes from "./routes/game.route.js";
+import sessionRoutes from "./routes/session.route.js";
 
 /*
  * Configures the Express app that Socket.IO's HTTP server wraps.
@@ -34,5 +35,6 @@ app.use("/api/friends", friendRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/games", gameRoutes);
+app.use("/api/sessions", sessionRoutes);
 
 export default app;

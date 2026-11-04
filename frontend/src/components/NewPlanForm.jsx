@@ -1,4 +1,5 @@
 import { useState } from "react";
+import GamePicker, { gameForApi } from "./GamePicker";
 
 /*
  * Inline form for starting a plan: what, where, when (optional) and an
@@ -9,6 +10,7 @@ function NewPlanForm({ onSubmit, onCancel }) {
     const [where, setWhere] = useState("");
     const [when, setWhen] = useState("");
     const [meetLink, setMeetLink] = useState("");
+    const [game, setGame] = useState(null);
     const [error, setError] = useState("");
 
     const submit = async (e) => {
@@ -27,6 +29,9 @@ function NewPlanForm({ onSubmit, onCancel }) {
             });
         }
         if (meetLink.trim()) plan.meetLink = meetLink.trim();
+        const chosen = gameForApi(game);
+        if (game && !chosen) return setError("Name the game, or pick one from the list.");
+        if (chosen) plan.game = chosen;
         try {
             setError("");
             await onSubmit(plan);
@@ -36,7 +41,8 @@ function NewPlanForm({ onSubmit, onCancel }) {
     };
 
     return (
-        <form className="plan-form" onSubmit={submit}>
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+        <form className="plan-form modal panel" onSubmit={submit}>
             <div className="field">
                 <label htmlFor="plan-title">What's the plan?</label>
                 <input id="plan-title" type="text" value={title} maxLength={100} onChange={(e) => setTitle(e.target.value)} placeholder="Game night" autoFocus />
@@ -48,6 +54,10 @@ function NewPlanForm({ onSubmit, onCancel }) {
             <div className="field">
                 <label htmlFor="plan-when">When (turns on reminders)</label>
                 <input id="plan-when" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+            </div>
+            <div className="field">
+                <label>Game (optional)</label>
+                <GamePicker value={game} onChange={setGame} />
             </div>
             <div className="field">
                 <label htmlFor="plan-link">Call link</label>
@@ -62,6 +72,7 @@ function NewPlanForm({ onSubmit, onCancel }) {
                 <button type="button" className="plain" onClick={onCancel}>Cancel</button>
             </div>
         </form>
+        </div>
     );
 }
 

@@ -10,7 +10,7 @@ async function makeGroup(n = 2) {
   const { owner, friends } = await ownerWithFriends(n);
   const res = await owner.agent
     .post("/api/groups")
-    .send({ name: "Hostel B", memberIds: friends.map((f) => f.user._id) })
+    .send({ name: "Weekend crew", memberIds: friends.map((f) => f.user._id) })
     .expect(201);
   return { owner, friends, group: res.body };
 }
@@ -143,7 +143,7 @@ describe("AI plan detection", () => {
     await new Promise((r) => setTimeout(r, 100));
   });
 
-  const found = { title: "Saturday trek", where: "Yelagiri", whenText: "Sat 7am", startsAt: undefined, timeOptions: [], confidence: 0.9 };
+  const found = { title: "Saturday dinner", where: "Sector 18 food court", whenText: "Sat 7am", startsAt: undefined, timeOptions: [], confidence: 0.9 };
 
   it("creates an AI card on demand from the recent chat", async () => {
     const { owner, friends, group } = await makeGroup(1);
@@ -152,7 +152,7 @@ describe("AI plan detection", () => {
     extractPlan.mockResolvedValue(found);
 
     const res = await owner.agent.post(`/api/groups/${group._id}/plans/detect`).expect(200);
-    expect(res.body.plan).toMatchObject({ title: "Saturday trek", source: "ai", status: "open" });
+    expect(res.body.plan).toMatchObject({ title: "Saturday dinner", source: "ai", status: "open" });
     expect(res.body.plan.sourceMessageIds).toHaveLength(2);
 
     const input = extractPlan.mock.calls[0][0];
@@ -171,7 +171,7 @@ describe("AI plan detection", () => {
     await owner.agent.post(`/api/groups/${group._id}/plans/detect`).expect(200);
     const again = await owner.agent.post(`/api/groups/${group._id}/plans/detect`).expect(200);
     expect(again.body.plan).toBeNull();
-    expect(extractPlan.mock.calls[1][0].openPlans.map((p) => p.title)).toEqual(["Saturday trek"]);
+    expect(extractPlan.mock.calls[1][0].openPlans.map((p) => p.title)).toEqual(["Saturday dinner"]);
   });
 
   it("returns no card when nothing is being planned", async () => {
@@ -195,7 +195,7 @@ describe("AI plan detection", () => {
     expect(extractPlan).toHaveBeenCalledTimes(1);
     await vi.waitFor(async () => {
       const list = await owner.agent.get(`/api/groups/${group._id}/plans`).expect(200);
-      expect(list.body.map((p) => p.title)).toEqual(["Saturday trek"]);
+      expect(list.body.map((p) => p.title)).toEqual(["Saturday dinner"]);
     });
   });
 

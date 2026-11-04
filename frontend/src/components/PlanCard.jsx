@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { rsvpPlan, votePlan, updatePlan } from "../api/plans";
+import GamePicker, { gameForApi } from "./GamePicker";
+import SessionForm from "./SessionForm";
 
 const STATUSES = [
     ["going", "Going"],
@@ -71,13 +73,71 @@ function CallRow({ plan, onSave }) {
     );
 }
 
+/* The game this plan is for: Play link or room code, and a way to change it. */
+function GameRow({ plan, onSave }) {
+    const [editing, setEditing] = useState(false);
+    const [value, setValue] = useState(null);
+    const [error, setError] = useState("");
+
+    const save = async () => {
+        const game = gameForApi(value);
+        if (value && !game) return setError("Name the game, or pick one from the list.");
+        try {
+            setError("");
+            await onSave(game);
+            setEditing(false);
+        } catch (err) {
+            setError(err.response?.data?.message || "Couldn't save the game.");
+        }
+    };
+
+    if (editing) {
+        return (
+            <div style={{ display: "grid", gap: "6px" }}>
+                <GamePicker value={value} onChange={setValue} />
+                <div className="vote-row">
+                    <button className="small lime" onClick={save}>Save game</button>
+                    <button className="small plain" onClick={() => setEditing(false)}>Cancel</button>
+                </div>
+                {error && <small className="error">{error}</small>}
+            </div>
+        );
+    }
+
+    return (
+        <div className="vote-row">
+            {plan.game?.name && (
+                <>
+                    <span className="detail"><b>Game</b> {plan.game.name}</span>
+                    {plan.game.url && (
+                        <a className="btn small pink" href={plan.game.url} target="_blank" rel="noopener noreferrer">
+                            Play
+                        </a>
+                    )}
+                    {plan.game.code && <span className="code">Room code: <b>{plan.game.code}</b></span>}
+                </>
+            )}
+            <button
+                className="small plain"
+                onClick={() => {
+                    setValue(plan.game ? { name: plan.game.name, url: plan.game.url ?? "", code: plan.game.code ?? "" } : null);
+                    setEditing(true);
+                }}
+            >
+                {plan.game?.name ? "Change game" : "Pick a game"}
+            </button>
+        </div>
+    );
+}
+
 /*
  * A live plan ticket. Every button calls the API; the server then emits
  * plan:update to the whole group, and Chat.jsx swaps in the new plan,
  * so all members see the same ticket. Left: the details. Right: the
  * tear-off stub with the RSVP buttons.
  */
-function PlanCard({ plan, members, currentUser, onChange }) {
+function PlanCard({ plan, members, group, currentUser, onChange }) {
+    const [logging, setLogging] = useState(false);
     const nameOf = (id) => members.find((m) => m._id === id)?.username ?? "someone";
     const myRsvp = plan.rsvps.find((r) => r.userId === currentUser?._id)?.status;
     // Re-render every 30s so the countdown stays honest.
@@ -106,6 +166,7 @@ function PlanCard({ plan, members, currentUser, onChange }) {
     };
 
     return (
+        <>
         <div className="ticket">
             <div className="ticket-main">
                 {plan.source === "ai" && <span className="tag" title="Suggested from your chat">Suggested</span>}
@@ -154,6 +215,7 @@ function PlanCard({ plan, members, currentUser, onChange }) {
                     </div>
                 )}
 
+                <GameRow plan={plan} onSave={act2((game) => updatePlan(plan._id, { game }))} />
                 <CallRow plan={plan} onSave={act2((meetLink) => updatePlan(plan._id, { meetLink }))} />
 
                 <small>
@@ -172,11 +234,24 @@ function PlanCard({ plan, members, currentUser, onChange }) {
                         {label}
                     </button>
                 ))}
+                <button className="small lime" onClick={() => setLogging(true)}>
+                    We played
+                </button>
                 <button className="small plain" onClick={act(() => updatePlan(plan._id, { status: "cancelled" }))}>
                     {plan.source === "ai" ? "Dismiss" : "Cancel"}
                 </button>
             </div>
         </div>
+        {logging && group && (
+            <SessionForm
+                group={group}
+                plan={plan}
+                currentUser={currentUser}
+                onCancel={() => setLogging(false)}
+                onDone={() => setLogging(false)}
+            />
+        )}
+        </>
     );
 }
 

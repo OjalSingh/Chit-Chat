@@ -16,6 +16,7 @@ import FriendRequests from "../components/FriendRequests";
 import PaperPlane from "../components/PaperPlane";
 import ThemeToggle from "../components/ThemeToggle";
 import WordleGame from "../components/WordleGame";
+import SessionHistory from "../components/SessionHistory";
 
 
 function Chat() {
@@ -47,6 +48,8 @@ function Chat() {
     const [tab, setTab] = useState("crew");
     // The game open in the main panel (null = the chat).
     const [game, setGame] = useState(null);
+    // Showing the selected room's game history instead of its chat.
+    const [showHistory, setShowHistory] = useState(false);
     // Reminders pushed by the server ("Game night starts in 5 minutes").
     const [reminders, setReminders] = useState([]);
     const [messages, setMessages] = useState([]);
@@ -252,6 +255,7 @@ function Chat() {
     };
 
     const openGroup = async (group) => {
+        setShowHistory(false);
         setSelectedUser(null);
         setSelectedGroup(group);
         setMessages([]);
@@ -437,6 +441,7 @@ function Chat() {
                                 onlineUsers={onlineUsers}
                                 onSelectFriend={(friend) => {
                                     setGame(null);
+                                    setShowHistory(false);
                                     setSelectedGroup(null);
                                     setSelectedUser(friend);
                                     loadMessages(friend._id);
@@ -483,6 +488,13 @@ function Chat() {
                 <section className="convo panel">
                     {game === "wordle" ? (
                         <WordleGame groups={groups} currentUser={currentUser} />
+                    ) : showHistory && selectedGroup ? (
+                        <SessionHistory
+                            group={selectedGroup}
+                            plans={plans}
+                            currentUser={currentUser}
+                            onBack={() => setShowHistory(false)}
+                        />
                     ) : (
                         <>
                             <ChatWindow
@@ -495,6 +507,7 @@ function Chat() {
                                 onPlanChange={applyPlan}
                                 onFindPlan={handleFindPlan}
                                 onCreatePlan={handleCreatePlan}
+                                onOpenHistory={() => setShowHistory(true)}
                                 planNotice={planNotice}
                             />
                             <MessageInput

@@ -161,7 +161,7 @@ describe("managing members", () => {
 
   it("lets an admin rename the group", async () => {
     const { owner, group } = await makeGroup(1);
-    const res = await owner.agent.patch(`/api/groups/${group._id}`).send({ name: "Hostel B" }).expect(200);
-    expect(res.body.name).toBe("Hostel B");
+    const res = await owner.agent.patch(`/api/groups/${group._id}`).send({ name: "Weekend crew" }).expect(200);
+    expect(res.body.name).toBe("Weekend crew");
   });
 });
