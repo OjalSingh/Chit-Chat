@@ -215,3 +215,76 @@ describe("AI plan detection", () => {
     expect(extractPlan).not.toHaveBeenCalled();
   });
 });
+
+describe("call link", () => {
+  it("accepts an https link on create and update, and rejects anything else", async () => {
+    const { owner, friends, group } = await makeGroup(1);
+    const created = await owner.agent
+      .post(`/api/groups/${group._id}/plans`)
+      .send({ title: "Game night", meetLink: "https://meet.google.com/abc-defg-hij" })
+      .expect(201);
+    expect(created.body.meetLink).toBe("https://meet.google.com/abc-defg-hij");
+
+    for (const bad of ["javascript:alert(1)", "http://meet.google.com/x", "not a url"]) {
+      await owner.agent.post(`/api/groups/${group._id}/plans`).send({ title: "x", meetLink: bad }).expect(400);
+      await owner.agent.patch(`/api/plans/${created.body._id}`).send({ meetLink: bad }).expect(400);
+    }
+
+    // any member can paste the link, and "" clears it
+    const set = await friends[0].agent
+      .patch(`/api/plans/${created.body._id}`)
+      .send({ meetLink: "https://zoom.us/j/123" })
+      .expect(200);
+    expect(set.body.meetLink).toBe("https://zoom.us/j/123");
+    const cleared = await owner.agent.patch(`/api/plans/${created.body._id}`).send({ meetLink: "" }).expect(200);
+    expect(cleared.body.meetLink).toBe("");
+  });
+});
+
+const { runReminders } = await import("../src/services/planReminders.js");
+
+describe("reminders", () => {
+  const at = (minutesFromNow) => new Date(Date.now() + minutesFromNow * 60_000).toISOString();
+
+  it("sends the 1 hour reminder once, then the 5 minute one once", async () => {
+    const { owner, group } = await makeGroup(1);
+    const plan = (
+      await owner.agent.post(`/api/groups/${group._id}/plans`).send({ title: "Dinner", startsAt: at(50) })
+    ).body;
+
+    const first = await runReminders();
+    expect(first.map((r) => [r.plan._id.toString(), r.stage])).toEqual([[plan._id, "h1"]]);
+    expect(await runReminders()).toEqual([]); // not again
+
+    const later = await runReminders(new Date(Date.now() + 46 * 60_000));
+    expect(later.map((r) => r.stage)).toEqual(["m5"]);
+    expect(await runReminders(new Date(Date.now() + 47 * 60_000))).toEqual([]);
+  });
+
+  it("sends only the 5 minute reminder for a plan that is already that close", async () => {
+    const { owner, group } = await makeGroup(1);
+    await owner.agent.post(`/api/groups/${group._id}/plans`).send({ title: "Soon", startsAt: at(3) });
+    const sent = await runReminders();
+    expect(sent.map((r) => r.stage)).toEqual(["m5"]);
+    expect(await runReminders()).toEqual([]);
+  });
+
+  it("ignores far-off, past and cancelled plans, and re-arms when the time changes", async () => {
+    const { owner, group } = await makeGroup(1);
+    const far = (await owner.agent.post(`/api/groups/${group._id}/plans`).send({ title: "Far", startsAt: at(180) })).body;
+    await owner.agent.post(`/api/groups/${group._id}/plans`).send({ title: "Past", startsAt: at(-10) });
+    const cancelled = (
+      await owner.agent.post(`/api/groups/${group._id}/plans`).send({ title: "Off", startsAt: at(30) })
+    ).body;
+    await owner.agent.patch(`/api/plans/${cancelled._id}`).send({ status: "cancelled" });
+    expect(await runReminders()).toEqual([]);
+
+    // move "Far" to 40 minutes from now: it becomes due
+    await owner.agent.patch(`/api/plans/${far._id}`).send({ startsAt: at(40) }).expect(200);
+    expect((await runReminders()).map((r) => r.plan.title)).toEqual(["Far"]);
+
+    // reschedule after it was reminded: it is armed again
+    await owner.agent.patch(`/api/plans/${far._id}`).send({ startsAt: at(30) }).expect(200);
+    expect((await runReminders()).map((r) => r.plan.title)).toEqual(["Far"]);
+  });
+});

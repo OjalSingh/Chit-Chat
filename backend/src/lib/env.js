@@ -18,5 +18,7 @@ export const ENV = {
     PLAN_DEBOUNCE_MS: Number(process.env.PLAN_DEBOUNCE_MS ?? 10_000),
     // How many recent messages the detector reads.
     PLAN_CONTEXT_MESSAGES: Number(process.env.PLAN_CONTEXT_MESSAGES ?? 20),
+    // Reminders in the group chat 1 hour and 5 minutes before a plan starts.
+    PLAN_REMINDERS: process.env.PLAN_REMINDERS ?? "on",
     PLAN_MIN_CONFIDENCE: Number(process.env.PLAN_MIN_CONFIDENCE ?? 0.7),
 };
