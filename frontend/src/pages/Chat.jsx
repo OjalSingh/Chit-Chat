@@ -15,6 +15,7 @@ import SearchUsers from "../components/SearchUsers";
 import FriendRequests from "../components/FriendRequests";
 import PaperPlane from "../components/PaperPlane";
 import ThemeToggle from "../components/ThemeToggle";
+import WordleGame from "../components/WordleGame";
 
 
 function Chat() {
@@ -44,6 +45,8 @@ function Chat() {
     const [plans, setPlans] = useState([]);
     const [planNotice, setPlanNotice] = useState("");
     const [tab, setTab] = useState("crew");
+    // The game open in the main panel (null = the chat).
+    const [game, setGame] = useState(null);
     // Reminders pushed by the server ("Game night starts in 5 minutes").
     const [reminders, setReminders] = useState([]);
     const [messages, setMessages] = useState([]);
@@ -418,6 +421,7 @@ function Chat() {
                         {[
                             ["crew", "Crew"],
                             ["rooms", "Rooms"],
+                            ["games", "Games"],
                             ["add", "Add"],
                         ].map(([id, label]) => (
                             <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
@@ -432,6 +436,7 @@ function Chat() {
                                 selectedUser={selectedUser}
                                 onlineUsers={onlineUsers}
                                 onSelectFriend={(friend) => {
+                                    setGame(null);
                                     setSelectedGroup(null);
                                     setSelectedUser(friend);
                                     loadMessages(friend._id);
@@ -443,9 +448,28 @@ function Chat() {
                                 groups={groups}
                                 friends={friends}
                                 selectedGroup={selectedGroup}
-                                onSelectGroup={openGroup}
+                                onSelectGroup={(g) => {
+                                    setGame(null);
+                                    openGroup(g);
+                                }}
                                 onCreateGroup={handleCreateGroup}
                             />
+                        )}
+                        {tab === "games" && (
+                            <div style={{ display: "grid", gap: "10px" }}>
+                                <h2>Games</h2>
+                                <div
+                                    className={game === "wordle" ? "row selected" : "row"}
+                                    onClick={() => setGame("wordle")}
+                                >
+                                    <span className="avatar" style={{ background: "#7ae582" }}>W</span>
+                                    <div className="grow">
+                                        <div className="name">Word of the day</div>
+                                        <small>Daily. Compare with your crew.</small>
+                                    </div>
+                                </div>
+                                <p className="muted">More games are coming.</p>
+                            </div>
                         )}
                         {tab === "add" && (
                             <>
@@ -457,24 +481,31 @@ function Chat() {
                 </aside>
 
                 <section className="convo panel">
-                    <ChatWindow
-                        selectedUser={selectedUser}
-                        selectedGroup={selectedGroup}
-                        messages={messages}
-                        currentUser={currentUser}
-                        onLeaveGroup={handleLeaveGroup}
-                        plans={plans}
-                        onPlanChange={applyPlan}
-                        onFindPlan={handleFindPlan}
-                        onCreatePlan={handleCreatePlan}
-                        planNotice={planNotice}
-                    />
-                    <MessageInput
-                        value={newMessage}
-                        onChange={setNewMessage}
-                        onSend={handleSendMessage}
-                        disabled={!hasChat}
-                    />
+                    {game === "wordle" ? (
+                        <WordleGame groups={groups} currentUser={currentUser} />
+                    ) : (
+                        <>
+                            <ChatWindow
+                                selectedUser={selectedUser}
+                                selectedGroup={selectedGroup}
+                                messages={messages}
+                                currentUser={currentUser}
+                                onLeaveGroup={handleLeaveGroup}
+                                plans={plans}
+                                onPlanChange={applyPlan}
+                                onFindPlan={handleFindPlan}
+                                onCreatePlan={handleCreatePlan}
+                                planNotice={planNotice}
+                            />
+                            <MessageInput
+                                value={newMessage}
+                                onChange={setNewMessage}
+                                onSend={handleSendMessage}
+                                disabled={!hasChat}
+                            />
+
+                        </>
+                    )}
                 </section>
             </div>
 

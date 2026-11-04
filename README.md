@@ -807,3 +807,14 @@ Rather than showcasing only CRUD operations, ChitChat demonstrates practical bac
 - Media uploads via Cloudinary
 
 ---
+
+## Games
+
+The Games tab holds small daily games with records you can compare in a room. The first is **Word of the day**, a five-letter, six-try word game. Everyone gets the same word on the same day (the day flips at midnight in `GAME_TIMEZONE`, default `Asia/Kolkata`), so scores are comparable across rooms.
+
+- **The server scores every guess.** The word is picked from a curated list by a salted hash of the date (`GAME_SALT`, falling back to `JWT_SECRET`), and the client never receives it unless the game is lost. Guesses must be real words (about 12.5k, from the MIT-licensed `word-list` package). Updates are conditional, so double clicks or two tabs can't add a seventh guess or repeat a word.
+- **Records.** Played, win rate, average tries, current and best streak, and a guess distribution, per player (`GET /api/games/wordle/stats`).
+- **Compare.** `GET /api/games/wordle/leaderboard/:groupId` ranks a room by average tries. Each person's coloured grid for today shows only after you've finished today's word yourself, and only the colours are shared, never the words, so looking can't spoil it. Finishing emits `game:result` to the player's rooms so boards update live.
+- **Share.** After finishing you can copy the usual coloured-squares summary.
+
+Results are stored once per player per game per day (`GameResult`, unique on user, game and day), so adding another daily game means a new rules module and routes, not a new store.
