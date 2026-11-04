@@ -20,5 +20,7 @@ export const ENV = {
     PLAN_CONTEXT_MESSAGES: Number(process.env.PLAN_CONTEXT_MESSAGES ?? 20),
     // Day boundary for the daily games (everyone's "today" flips at the same moment).
     GAME_TIMEZONE: process.env.GAME_TIMEZONE || process.env.PLAN_TIMEZONE || "Asia/Kolkata",
+    // Reminders in the group chat 1 hour and 5 minutes before a plan starts.
+    PLAN_REMINDERS: process.env.PLAN_REMINDERS ?? "on",
     PLAN_MIN_CONFIDENCE: Number(process.env.PLAN_MIN_CONFIDENCE ?? 0.7),
 };
