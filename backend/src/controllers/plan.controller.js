@@ -13,6 +13,22 @@ const parseDate = (value) => {
     return Number.isNaN(d.getTime()) ? "invalid" : d;
 };
 
+/*
+ * Call links must be https URLs. Returns the cleaned link, "" to clear it,
+ * undefined when not provided, or "invalid".
+ */
+const parseLink = (value) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === "") return "";
+    if (typeof value !== "string" || value.length > 200) return "invalid";
+    try {
+        const url = new URL(value.trim());
+        return url.protocol === "https:" ? url.toString() : "invalid";
+    } catch {
+        return "invalid";
+    }
+};
+
 /* Loads the group from :groupId and checks membership. */
 const groupForMember = async (req, res) => {
     const group = await Group.findById(req.params.groupId);
@@ -61,7 +77,7 @@ export const listPlans = handle("listPlans", async (req, res) => {
 
 /*
  * POST /api/groups/:groupId/plans
- * Body: { title, where?, whenText?, startsAt?, timeOptions?: [label, ...] }
+ * Body: { title, where?, whenText?, startsAt?, meetLink?, timeOptions?: [label, ...] }
  * A member starts a plan by hand. The creator is marked as going.
  */
 export const createPlan = handle("createPlan", async (req, res) => {
@@ -72,6 +88,9 @@ export const createPlan = handle("createPlan", async (req, res) => {
     if (!title) return res.status(400).json({ message: "A plan needs a title" });
     const startsAt = parseDate(req.body.startsAt);
     if (startsAt === "invalid") return res.status(400).json({ message: "Invalid startsAt" });
+
+    const meetLink = parseLink(req.body.meetLink);
+    if (meetLink === "invalid") return res.status(400).json({ message: "meetLink must be an https link" });
 
     const labels = Array.isArray(req.body.timeOptions) ? req.body.timeOptions : [];
     if (labels.length > PLAN_LIMITS.maxTimeOptions) {
@@ -84,6 +103,7 @@ export const createPlan = handle("createPlan", async (req, res) => {
         where: clean(req.body.where, 120) ?? "",
         whenText: clean(req.body.whenText, 80) ?? "",
         startsAt: startsAt ?? undefined,
+        meetLink: meetLink ?? "",
         timeOptions: labels.map((l) => clean(l, 80)).filter(Boolean).map((label) => ({ label })),
         rsvps: [{ userId: req.user._id, status: "going" }],
         createdBy: req.user._id,
@@ -169,7 +189,7 @@ export const vote = handle("vote", async (req, res) => {
 
 /*
  * PATCH /api/plans/:planId
- * Body: any of { title, where, whenText, startsAt, pickOptionId, status }
+ * Body: any of { title, where, whenText, startsAt, meetLink, pickOptionId, status }
  * Any member can fill in details (plans are collaborative). pickOptionId
  * locks in a time from the poll. Cancelling is limited to the creator and
  * group admins, except for AI suggestions, which any member can dismiss.
@@ -179,6 +199,10 @@ export const updatePlan = handle("updatePlan", async (req, res) => {
     if (!plan) return;
 
     const { title, where, whenText, startsAt, pickOptionId, status } = req.body;
+    const startsBefore = plan.startsAt?.getTime();
+    const meetLink = parseLink(req.body.meetLink);
+    if (meetLink === "invalid") return res.status(400).json({ message: "meetLink must be an https link" });
+    if (meetLink !== undefined) plan.meetLink = meetLink;
 
     if (status !== undefined) {
         if (!["open", "cancelled"].includes(status)) {
@@ -211,6 +235,11 @@ export const updatePlan = handle("updatePlan", async (req, res) => {
         if (!option) return res.status(404).json({ message: "Time option not found" });
         plan.whenText = option.label;
         plan.startsAt = option.startsAt;
+    }
+
+    // A new time means the reminders should fire again for that time.
+    if (plan.startsAt?.getTime() !== startsBefore) {
+        plan.reminders = { h1: false, m5: false };
     }
 
     await plan.save();

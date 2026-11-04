@@ -28,6 +28,13 @@ const planSchema = new mongoose.Schema(
         // human wording ("Sat 7am") for display; startsAt is machine-readable.
         whenText: { type: String, trim: true, maxlength: 80, default: "" },
         startsAt: { type: Date },
+        // Optional call link (Meet, Zoom, Discord...). https only.
+        meetLink: { type: String, trim: true, maxlength: 200, default: "" },
+        // Which reminders have already gone out. Reset when startsAt changes.
+        reminders: {
+            h1: { type: Boolean, default: false },
+            m5: { type: Boolean, default: false },
+        },
         timeOptions: [timeOptionSchema],
         rsvps: [rsvpSchema],
         status: { type: String, enum: ["open", "cancelled"], default: "open" },

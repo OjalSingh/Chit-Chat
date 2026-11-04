@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import PlanCard from "./PlanCard";
 import PaperPlane from "./PaperPlane";
+import NewPlanForm from "./NewPlanForm";
 
 /*
  * Renders one conversation: a direct chat with selectedUser,
@@ -18,7 +19,7 @@ function ChatWindow({
     plans = [],
     onPlanChange,
     onFindPlan,
-    onNewPlan,
+    onCreatePlan,
     planNotice,
 }) {
     const senderIdOf = (message) => message.senderId?._id ?? message.senderId;
@@ -30,6 +31,8 @@ function ChatWindow({
     };
 
     const hasChat = selectedUser || selectedGroup;
+    const [creatingPlan, setCreatingPlan] = useState(false);
+    useEffect(() => setCreatingPlan(false), [selectedGroup?._id]);
 
     // Keep the newest note in view.
     const bottom = useRef(null);
@@ -48,7 +51,7 @@ function ChatWindow({
                         </div>
                         <div className="tools">
                             {planNotice && <small>{planNotice}</small>}
-                            <button className="small lime" onClick={onNewPlan}>+ New plan</button>
+                            <button className="small lime" onClick={() => setCreatingPlan(true)}>+ New plan</button>
                             <button className="small blue" onClick={onFindPlan}>Plan from chat</button>
                             <button className="small plain" onClick={onLeaveGroup}>Leave</button>
                         </div>
@@ -59,6 +62,16 @@ function ChatWindow({
                     <h2>Chit-Chat</h2>
                 )}
             </div>
+
+            {selectedGroup && creatingPlan && (
+                <NewPlanForm
+                    onCancel={() => setCreatingPlan(false)}
+                    onSubmit={async (plan) => {
+                        await onCreatePlan(plan);
+                        setCreatingPlan(false);
+                    }}
+                />
+            )}
 
             {selectedGroup && plans.length > 0 && (
                 <div className="plans">

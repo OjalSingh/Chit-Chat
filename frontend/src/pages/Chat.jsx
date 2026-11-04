@@ -4,7 +4,7 @@ import { verify, logout } from "../api/auth";
 import { getFriends } from "../api/friends";
 import { getGroups, createGroup, getGroupMessages, sendGroupMessage, leaveGroup } from "../api/groups";
 import GroupList from "../components/GroupList";
-import { getPlans, createPlan, detectPlan } from "../api/plans";
+import { getPlans, createPlan, detectPlan, rsvpPlan } from "../api/plans";
 import { useNavigate, } from "react-router-dom";
 import MessageInput from "../components/MessageInput";
 import Sidebar from "../components/Sidebar";
@@ -44,6 +44,8 @@ function Chat() {
     const [plans, setPlans] = useState([]);
     const [planNotice, setPlanNotice] = useState("");
     const [tab, setTab] = useState("crew");
+    // Reminders pushed by the server ("Game night starts in 5 minutes").
+    const [reminders, setReminders] = useState([]);
     const [messages, setMessages] = useState([]);
 
     const [loading, setLoading] = useState(true);
@@ -99,6 +101,10 @@ function Chat() {
             if (selectedGroup && plan.groupId === selectedGroup._id) applyPlan(plan);
         };
 
+        const handleReminder = (reminder) =>
+            setReminders((prev) => [...prev.filter((r) => r.planId !== reminder.planId), reminder]);
+
+        socket.on("plan:reminder", handleReminder);
         socket.on("plan:new", handlePlan);
         socket.on("plan:update", handlePlan);
         socket.on("newGroupMessage", handleGroupMessage);
@@ -106,6 +112,7 @@ function Chat() {
         socket.on("groupUpdated", handleGroupUpdated);
         socket.on("groupRemoved", handleGroupRemoved);
         return () => {
+            socket.off("plan:reminder", handleReminder);
             socket.off("plan:new", handlePlan);
             socket.off("plan:update", handlePlan);
             socket.off("newGroupMessage", handleGroupMessage);
@@ -281,15 +288,21 @@ function Chat() {
         }
     };
 
-    const handleNewPlan = async () => {
-        if (!selectedGroup) return;
-        const title = window.prompt("What's the plan?");
-        if (!title?.trim()) return;
+    // Answer a reminder from its toast: "still on?" is just an RSVP.
+    const answerReminder = async (reminder, status) => {
         try {
-            applyPlan(await createPlan(selectedGroup._id, { title: title.trim() }));
+            const plan = await rsvpPlan(reminder.planId, status);
+            if (selectedGroup && plan.groupId === selectedGroup._id) applyPlan(plan);
         } catch (err) {
             console.error(err);
         }
+        setReminders((prev) => prev.filter((r) => r.planId !== reminder.planId));
+    };
+
+    const handleCreatePlan = async (fields) => {
+        if (!selectedGroup) return;
+        // Errors propagate to the form, which shows them.
+        applyPlan(await createPlan(selectedGroup._id, fields));
     };
 
     const handleLeaveGroup = async () => {
@@ -453,7 +466,7 @@ function Chat() {
                         plans={plans}
                         onPlanChange={applyPlan}
                         onFindPlan={handleFindPlan}
-                        onNewPlan={handleNewPlan}
+                        onCreatePlan={handleCreatePlan}
                         planNotice={planNotice}
                     />
                     <MessageInput
@@ -464,6 +477,29 @@ function Chat() {
                     />
                 </section>
             </div>
+
+            {reminders.length > 0 && (
+                <div className="toasts" role="status">
+                    {reminders.map((r) => (
+                        <div className="toast" key={r.planId}>
+                            <strong>{r.title}</strong>
+                            <span>
+                                {r.stage === "m5" ? "starts in about 5 minutes" : `starts in about ${r.minutes} minutes`}. Still on?
+                            </span>
+                            <div className="toast-actions">
+                                <button className="small lime" onClick={() => answerReminder(r, "going")}>Going</button>
+                                <button className="small plain" onClick={() => answerReminder(r, "out")}>Can't</button>
+                                {r.meetLink && (
+                                    <a className="btn small blue" href={r.meetLink} target="_blank" rel="noopener noreferrer">Join call</a>
+                                )}
+                                <button className="small plain" onClick={() => setReminders((prev) => prev.filter((x) => x.planId !== r.planId))}>
+                                    Dismiss
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

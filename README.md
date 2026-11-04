@@ -639,6 +639,10 @@ How it works:
 
 Configuration (backend `.env`): `ANTHROPIC_API_KEY` turns detection on. Optional settings are `PLAN_MODEL` (default `claude-opus-5-5`), `PLAN_TIMEZONE` (default `Asia/Kolkata`, used to resolve "Saturday 7am"), `PLAN_DEBOUNCE_MS`, `PLAN_CONTEXT_MESSAGES`, `PLAN_MIN_CONFIDENCE`, and `PLAN_DETECTION=off` to turn it off. Without a key, members can still create plans by hand.
 
+### Call links and reminders
+
+A plan can carry an `https` call link (Meet, Zoom, Discord). The ticket shows a Join call button, and the new-plan form links to `meet.new` for starting one. Plans with a start time get a reminder in the group 1 hour and 5 minutes before they start (a plan created less than an hour out gets only the 5 minute one). A server ticker checks every 30 seconds, claims each reminder with an atomic update so it fires once, and emits `plan:reminder`; the client shows a toast with Going, Can't and Join call. Changing the start time re-arms the reminders. Set `PLAN_REMINDERS=off` to disable the ticker.
+
 ### Group chats
 
 Friends can be pulled into named groups of up to 100 members. The creator is the first admin, admins add or remove people, anyone can leave, and the longest-standing member is promoted if the last admin leaves.
