@@ -1878,3 +1878,67 @@ select {
 @media (prefers-reduced-motion: reduce) {
   .typing-dots i, .msg, .send .fly { animation: none; }
 }
+
+/* ---------- Tap to flap ---------- */
+
+.flap-stage {
+  position: relative;
+  width: min(360px, 100%);
+  margin-inline: auto;
+  border: 3px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 5px 5px 0 var(--shadow);
+  overflow: hidden;
+  line-height: 0;
+}
+
+.flap-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 360 / 520;
+  touch-action: none;
+  image-rendering: pixelated;
+  cursor: pointer;
+}
+
+.flap-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  background: #2b2b2b66;
+  color: #fff;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
+}
+
+.flap-overlay b {
+  font-family: "Press Start 2P", monospace;
+  font-size: 1rem;
+  text-shadow: 3px 3px 0 #2b2b2b;
+}
+
+.flap-overlay small {
+  color: #fff;
+}
+
+.flap-overlay button {
+  pointer-events: auto;
+}
+
+.flap-hud {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 12px;
+  font-weight: 800;
+}
+
+.flap-best {
+  margin-left: auto;
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.85rem;
+}

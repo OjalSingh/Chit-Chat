@@ -16,6 +16,7 @@ import FriendRequests from "../components/FriendRequests";
 import PaperPlane from "../components/PaperPlane";
 import ThemeToggle from "../components/ThemeToggle";
 import WordleGame from "../components/WordleGame";
+import FlapGame from "../components/FlapGame";
 import SessionHistory from "../components/SessionHistory";
 
 
@@ -522,6 +523,16 @@ function Chat() {
                                         <small>Daily. Compare with your crew.</small>
                                     </div>
                                 </div>
+                                <div
+                                    className={game === "flap" ? "row selected" : "row"}
+                                    onClick={() => setGame("flap")}
+                                >
+                                    <span className="avatar" style={{ background: "#f8d838" }}>F</span>
+                                    <div className="grow">
+                                        <div className="name">Tap to flap</div>
+                                        <small>Arcade. Beat your crew's best.</small>
+                                    </div>
+                                </div>
                                 <p className="muted">More games are coming.</p>
                             </div>
                         )}
@@ -537,6 +548,8 @@ function Chat() {
                 <section className="convo panel">
                     {game === "wordle" ? (
                         <WordleGame groups={groups} currentUser={currentUser} />
+                    ) : game === "flap" ? (
+                        <FlapGame groups={groups} currentUser={currentUser} />
                     ) : showHistory && selectedGroup ? (
                         <SessionHistory
                             group={selectedGroup}
