@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Group from "../models/Group.js";
 import Plan, { PLAN_LIMITS } from "../models/Plan.js";
 import { emitPlan } from "../services/planEvents.js";
+import { cleanHttpsUrl } from "../games/catalog.js";
 import { aiAvailable, detectPlan } from "../services/planDetector.js";
 
 const clean = (value, max) => (typeof value === "string" ? value.trim().slice(0, max) : undefined);
@@ -27,6 +28,21 @@ const parseLink = (value) => {
     } catch {
         return "invalid";
     }
+};
+
+/*
+ * A plan's game: { name, url?, code? }. null clears it. Returns undefined
+ * when not provided, null to clear, the cleaned game, or "invalid".
+ */
+const parseGame = (value) => {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (typeof value !== "object" || Array.isArray(value)) return "invalid";
+    const name = clean(value.name, 60);
+    const url = cleanHttpsUrl(value.url);
+    const code = clean(value.code, 30);
+    if (!name || url === "invalid") return "invalid";
+    return { name, ...(url ? { url } : {}), ...(code ? { code } : {}) };
 };
 
 /* Loads the group from :groupId and checks membership. */
@@ -75,9 +91,29 @@ export const listPlans = handle("listPlans", async (req, res) => {
     res.status(200).json(plans);
 });
 
+/* A poll option is a plain label, or { label?, startsAt? } with a real date. */
+const parseOption = (raw) => {
+    if (typeof raw === "string") {
+        const label = clean(raw, 80);
+        return label ? { label } : null;
+    }
+    if (!raw || typeof raw !== "object") return "invalid";
+    const startsAt = parseDate(raw.startsAt);
+    if (startsAt === "invalid") return "invalid";
+    const label =
+        clean(raw.label, 80) ||
+        (startsAt
+            ? startsAt.toLocaleString("en-IN", {
+                  weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                  timeZone: process.env.GAME_TIMEZONE || "Asia/Kolkata",
+              })
+            : null);
+    return label ? { label, startsAt: startsAt ?? undefined } : null;
+};
+
 /*
  * POST /api/groups/:groupId/plans
- * Body: { title, where?, whenText?, startsAt?, meetLink?, timeOptions?: [label, ...] }
+ * Body: { title, where?, whenText?, startsAt?, meetLink?, game?, timeOptions?: [label, ...] }
  * A member starts a plan by hand. The creator is marked as going.
  */
 export const createPlan = handle("createPlan", async (req, res) => {
@@ -92,9 +128,19 @@ export const createPlan = handle("createPlan", async (req, res) => {
     const meetLink = parseLink(req.body.meetLink);
     if (meetLink === "invalid") return res.status(400).json({ message: "meetLink must be an https link" });
 
+    const game = parseGame(req.body.game);
+    if (game === "invalid") return res.status(400).json({ message: "game needs a name and an https link" });
+
     const labels = Array.isArray(req.body.timeOptions) ? req.body.timeOptions : [];
     if (labels.length > PLAN_LIMITS.maxTimeOptions) {
         return res.status(400).json({ message: `At most ${PLAN_LIMITS.maxTimeOptions} time options` });
+    }
+
+    const options = [];
+    for (const raw of labels) {
+        const opt = parseOption(raw);
+        if (opt === "invalid") return res.status(400).json({ message: "Each time option needs a valid date or label" });
+        if (opt) options.push(opt);
     }
 
     const plan = await Plan.create({
@@ -104,7 +150,8 @@ export const createPlan = handle("createPlan", async (req, res) => {
         whenText: clean(req.body.whenText, 80) ?? "",
         startsAt: startsAt ?? undefined,
         meetLink: meetLink ?? "",
-        timeOptions: labels.map((l) => clean(l, 80)).filter(Boolean).map((label) => ({ label })),
+        game: game ?? undefined,
+        timeOptions: options,
         rsvps: [{ userId: req.user._id, status: "going" }],
         createdBy: req.user._id,
         source: "member",
@@ -189,7 +236,7 @@ export const vote = handle("vote", async (req, res) => {
 
 /*
  * PATCH /api/plans/:planId
- * Body: any of { title, where, whenText, startsAt, meetLink, pickOptionId, status }
+ * Body: any of { title, where, whenText, startsAt, meetLink, game, pickOptionId, status }
  * Any member can fill in details (plans are collaborative). pickOptionId
  * locks in a time from the poll. Cancelling is limited to the creator and
  * group admins, except for AI suggestions, which any member can dismiss.
@@ -203,6 +250,9 @@ export const updatePlan = handle("updatePlan", async (req, res) => {
     const meetLink = parseLink(req.body.meetLink);
     if (meetLink === "invalid") return res.status(400).json({ message: "meetLink must be an https link" });
     if (meetLink !== undefined) plan.meetLink = meetLink;
+    const game = parseGame(req.body.game);
+    if (game === "invalid") return res.status(400).json({ message: "game needs a name and an https link" });
+    if (game !== undefined) plan.game = game ?? undefined;
 
     if (status !== undefined) {
         if (!["open", "cancelled"].includes(status)) {
@@ -229,6 +279,14 @@ export const updatePlan = handle("updatePlan", async (req, res) => {
         const d = parseDate(startsAt);
         if (d === "invalid") return res.status(400).json({ message: "Invalid startsAt" });
         plan.startsAt = d ?? undefined;
+    }
+    if (req.body.addTimeOption !== undefined) {
+        const opt = parseOption(req.body.addTimeOption);
+        if (!opt || opt === "invalid") return res.status(400).json({ message: "That time option isn't valid" });
+        if (plan.timeOptions.length >= PLAN_LIMITS.maxTimeOptions) {
+            return res.status(400).json({ message: `At most ${PLAN_LIMITS.maxTimeOptions} time options` });
+        }
+        plan.timeOptions.push(opt);
     }
     if (pickOptionId !== undefined) {
         const option = mongoose.isValidObjectId(pickOptionId) && plan.timeOptions.id(pickOptionId);

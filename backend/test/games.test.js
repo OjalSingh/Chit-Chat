@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ownerWithFriends, signupUser } from "./helpers.js";
+import { createGroupAndJoin, ownerWithFriends, signupUser } from "./helpers.js";
 import { ANSWERS } from "../src/games/data/answers.js";
 import {
   answerFor,
@@ -134,9 +134,7 @@ describe("wordle API", () => {
 
   it("ranks a group and shows others' grids only to people who have finished", async () => {
     const { owner, friends } = await ownerWithFriends(2);
-    const group = (
-      await owner.agent.post("/api/groups").send({ name: "Crew", memberIds: friends.map((f) => f.user._id) })
-    ).body;
+    const group = await createGroupAndJoin(owner, friends);
     const [a, b] = friends;
 
     // owner wins in 2, a wins in 1, b has not played
@@ -164,9 +162,7 @@ describe("wordle API", () => {
 
   it("keeps non-members out of a group's board", async () => {
     const { owner, friends } = await ownerWithFriends(1);
-    const group = (
-      await owner.agent.post("/api/groups").send({ name: "Crew", memberIds: [friends[0].user._id] })
-    ).body;
+    const group = await createGroupAndJoin(owner, friends);
     const outsider = await signupUser();
     await outsider.agent.get(`/api/games/wordle/leaderboard/${group._id}`).expect(403);
     await outsider.agent.get("/api/games/wordle/leaderboard/nope").expect(400);

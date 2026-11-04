@@ -13,11 +13,16 @@
 
 - **Chat** one to one or in rooms, with live delivery and online presence.
 - **Plan** together. A plan is a ticket with what, where and when, a time poll, Going / Maybe / Can't, an optional call link and reminders 1 hour and 5 minutes before. With an Anthropic key, the AI can draft the ticket from the chat.
-- **Play** daily games and keep records. The first game is Word of the day, with streaks, averages and a room leaderboard that never spoils the answer.
+- **Play together.** Pick a game on the plan (skribbl.io, Gartic Phone, Codenames, Among Us, Jackbox and more, or your own link). The ticket carries a Play button or a room code next to the call link. Chit-Chat doesn't host these games; it gets the group into them without the planning.
+- **Keep the record.** After playing, press "We played" to log who was there, who won, a note and a screenshot of the scoreboard. Each room has a game history: who plays most, what you play, what's next.
+- **Daily game.** Word of the day is built in, with streaks, averages and a room leaderboard that never spoils the answer.
 - **Pick a look.** Two backgrounds (Sky and Night) in a paper-plane, Y2K style, with a layout that collapses to one column on phones.
 
 <p align="center">
-  <img src="docs/plan-reminder.png" width="49%" alt="Plan ticket with call link and a reminder" />
+  <img src="docs/plan-reminder.png" width="49%" alt="Plan ticket with game, call link and a reminder" />
+  <img src="docs/game-history.png" width="49%" alt="Room game history with who played, stats and scoreboard screenshots" />
+</p>
+<p align="center">
   <img src="docs/game-wordle.png" width="49%" alt="Word of the day with records and room leaderboard" />
 </p>
 
@@ -668,19 +673,21 @@ A plan can carry an `https` call link (Meet, Zoom, Discord). The ticket shows a 
 
 ### Group chats
 
-Friends can be pulled into named groups of up to 100 members. The creator is the first admin, admins add or remove people, anyone can leave, and the longest-standing member is promoted if the last admin leaves.
+Friends can be invited to named groups of up to 100 members. Nobody is added without saying yes: an invite shows only the room's name, who asked and how many are in, and the room stays closed until the invitee accepts. The creator is the first admin, admins invite or remove people, anyone can leave, and the longest-standing member is promoted if the last admin leaves.
 
 | Method | Route | Who |
 |--------|-------|-----|
-| POST | `/api/groups` | anyone (members must be your friends) |
+| POST | `/api/groups` | anyone (invites your friends; they join when they accept) |
+| GET | `/api/groups/invites` | rooms you were invited to |
+| POST | `/api/groups/:groupId/accept` / `decline` | the invited person only |
 | GET | `/api/groups` | your groups, most active first |
 | GET | `/api/groups/:groupId` | members |
 | PATCH | `/api/groups/:groupId` | admins (rename) |
 | GET / POST | `/api/groups/:groupId/messages` | members |
-| POST | `/api/groups/:groupId/members` | admins |
+| POST | `/api/groups/:groupId/members` | admins (sends invites) |
 | DELETE | `/api/groups/:groupId/members/:userId` | admins, or yourself to leave |
 
-Realtime: each socket joins a `group:<id>` room for every group on connect, and is added to new groups' rooms immediately. Events are `newGroupMessage` (to everyone in the room except the sender), `groupAdded`, `groupUpdated` and `groupRemoved`.
+Realtime: each socket joins a `group:<id>` room for every group on connect, and is added to new groups' rooms immediately. Events are `newGroupMessage` (to everyone in the room except the sender), `groupInvite` (to the invited person), `groupUpdated` and `groupRemoved`.
 
 ### Tests
 
@@ -761,12 +768,14 @@ The frontend talks to `http://localhost:3000` by default. For a deploy, set `VIT
 
 | Method | Endpoint | Description |
 | ------ | -------- | ----------- |
-| POST | `/api/groups` | Create a group from your friends. Body `{ name, memberIds }`. |
+| POST | `/api/groups` | Create a group and invite friends. Body `{ name, memberIds }`. |
+| GET | `/api/groups/invites` | Rooms you've been invited to. |
+| POST | `/api/groups/:groupId/accept`, `/decline` | Answer an invite. |
 | GET | `/api/groups` | Your groups. |
 | GET | `/api/groups/:groupId` | One group, if you are a member. |
 | PATCH | `/api/groups/:groupId` | Rename (admins). |
 | GET / POST | `/api/groups/:groupId/messages` | Read or send group messages. |
-| POST | `/api/groups/:groupId/members` | Add friends (admins). |
+| POST | `/api/groups/:groupId/members` | Invite friends (admins). |
 | DELETE | `/api/groups/:groupId/members/:userId` | Remove a member, or leave. |
 
 ## Plans
@@ -778,9 +787,21 @@ The frontend talks to `http://localhost:3000` by default. For a deploy, set `VIT
 | POST | `/api/groups/:groupId/plans/detect` | Ask the AI to read the chat now (503 without a key). |
 | POST | `/api/plans/:planId/rsvp` | `{ status: going / maybe / out }`. |
 | POST | `/api/plans/:planId/vote` | Toggle a vote on a time option. |
-| PATCH | `/api/plans/:planId` | Edit details, set `meetLink` (https only), lock in a time, or cancel. |
+| PATCH | `/api/plans/:planId` | Edit details, set `meetLink` (https only) or `game` (`{ name, url?, code? }`, `null` clears), lock in a time, or cancel. |
 
 Socket events: `plan:new`, `plan:update`, `plan:reminder`.
+
+## Game sessions
+
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| GET | `/api/games/catalog` | Link games a plan can point at. |
+| POST | `/api/groups/:groupId/sessions` | Log a game: `{ gameName, playerIds, winnerId?, note?, screenshot?, planId? }`. Players and winner must be members. Passing `planId` marks that plan done. |
+| GET | `/api/groups/:groupId/sessions` | Newest 50 sessions plus stats: games played and wins per member, and how often each game was played. |
+| GET | `/api/sessions/:sessionId/screenshot` | The scoreboard image (members only). |
+| DELETE | `/api/sessions/:sessionId` | Whoever logged it, or a group admin. |
+
+Screenshots are resized in the browser to a JPEG under about 750 KB and stored with the session, but the list endpoint never returns the image; it's fetched from its own endpoint, which only serves PNG, JPEG or WebP and sets `nosniff`. Socket events: `session:new`, `session:removed`.
 
 ## Games
 

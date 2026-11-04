@@ -37,3 +37,13 @@ export async function ownerWithFriends(n) {
   }
   return { owner, friends };
 }
+
+/** Creates a group and has every friend accept the invite, like real members would. */
+export async function createGroupAndJoin(owner, friends, name = "Crew") {
+  const created = await owner.agent
+    .post("/api/groups")
+    .send({ name, memberIds: friends.map((f) => f.user._id) })
+    .expect(201);
+  for (const f of friends) await f.agent.post(`/api/groups/${created.body._id}/accept`).expect(200);
+  return (await owner.agent.get(`/api/groups/${created.body._id}`).expect(200)).body;
+}

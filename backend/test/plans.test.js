@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ownerWithFriends, signupUser } from "./helpers.js";
+import { createGroupAndJoin, ownerWithFriends, signupUser } from "./helpers.js";
 
 vi.mock("../src/services/planExtractor.js", () => ({ extractPlan: vi.fn() }));
 const { extractPlan } = await import("../src/services/planExtractor.js");
@@ -8,11 +8,8 @@ const { ENV } = await import("../src/lib/env.js");
 
 async function makeGroup(n = 2) {
   const { owner, friends } = await ownerWithFriends(n);
-  const res = await owner.agent
-    .post("/api/groups")
-    .send({ name: "Hostel B", memberIds: friends.map((f) => f.user._id) })
-    .expect(201);
-  return { owner, friends, group: res.body };
+  const group = await createGroupAndJoin(owner, friends, "Weekend crew");
+  return { owner, friends, group };
 }
 
 const say = (member, groupId, text) =>
@@ -80,6 +77,59 @@ describe("RSVPs and time polls", () => {
   });
 });
 
+describe("polls with real dates", () => {
+  it("keeps each option's date, and locking one in sets the plan's time", async () => {
+    const { owner, friends, group } = await makeGroup(1);
+    const sat = "2030-01-05T18:00:00.000Z";
+    const sun = "2030-01-06T18:00:00.000Z";
+    const plan = (
+      await owner.agent
+        .post(`/api/groups/${group._id}/plans`)
+        .send({ title: "Reunion", timeOptions: [{ startsAt: sat }, { label: "Sunday brunch", startsAt: sun }] })
+        .expect(201)
+    ).body;
+    expect(plan.timeOptions.map((o) => o.startsAt)).toEqual([sat, sun]);
+    expect(plan.timeOptions[0].label).toMatch(/Sat/); // label made from the date
+    expect(plan.timeOptions[1].label).toBe("Sunday brunch");
+
+    const locked = await friends[0].agent
+      .patch(`/api/plans/${plan._id}`)
+      .send({ pickOptionId: plan.timeOptions[1]._id })
+      .expect(200);
+    expect(locked.body.startsAt).toBe(sun);
+    expect(locked.body.whenText).toBe("Sunday brunch");
+  });
+
+  it("lets a member add an option later, within the limit, and rejects bad ones", async () => {
+    const { owner, friends, group } = await makeGroup(1);
+    const plan = (await owner.agent.post(`/api/groups/${group._id}/plans`).send({ title: "Dinner" })).body;
+    const added = await friends[0].agent
+      .patch(`/api/plans/${plan._id}`)
+      .send({ addTimeOption: { startsAt: "2030-02-01T13:30:00.000Z" } })
+      .expect(200);
+    expect(added.body.timeOptions).toHaveLength(1);
+    await owner.agent.patch(`/api/plans/${plan._id}`).send({ addTimeOption: { startsAt: "nonsense" } }).expect(400);
+    await owner.agent.patch(`/api/plans/${plan._id}`).send({ addTimeOption: 7 }).expect(400);
+    for (let i = 0; i < 4; i += 1) {
+      await owner.agent.patch(`/api/plans/${plan._id}`).send({ addTimeOption: `Option ${i}` }).expect(200);
+    }
+    await owner.agent.patch(`/api/plans/${plan._id}`).send({ addTimeOption: "one too many" }).expect(400);
+  });
+
+  it("lets a member change the time later, which re-arms reminders", async () => {
+    const { owner, friends, group } = await makeGroup(1);
+    const plan = (
+      await owner.agent.post(`/api/groups/${group._id}/plans`).send({ title: "Call", startsAt: "2030-03-01T10:00:00.000Z" })
+    ).body;
+    const res = await friends[0].agent
+      .patch(`/api/plans/${plan._id}`)
+      .send({ startsAt: "2030-03-02T11:00:00.000Z", whenText: "Sat 4:30pm" })
+      .expect(200);
+    expect(res.body.startsAt).toBe("2030-03-02T11:00:00.000Z");
+    expect(res.body.reminders).toMatchObject({ h1: false, m5: false });
+  });
+});
+
 describe("concurrent taps", () => {
   it("keeps every RSVP and vote when members act at the same moment", async () => {
     const { owner, friends, group } = await makeGroup(5);
@@ -143,7 +193,7 @@ describe("AI plan detection", () => {
     await new Promise((r) => setTimeout(r, 100));
   });
 
-  const found = { title: "Saturday trek", where: "Yelagiri", whenText: "Sat 7am", startsAt: undefined, timeOptions: [], confidence: 0.9 };
+  const found = { title: "Saturday dinner", where: "Sector 18 food court", whenText: "Sat 7am", startsAt: undefined, timeOptions: [], confidence: 0.9 };
 
   it("creates an AI card on demand from the recent chat", async () => {
     const { owner, friends, group } = await makeGroup(1);
@@ -152,7 +202,7 @@ describe("AI plan detection", () => {
     extractPlan.mockResolvedValue(found);
 
     const res = await owner.agent.post(`/api/groups/${group._id}/plans/detect`).expect(200);
-    expect(res.body.plan).toMatchObject({ title: "Saturday trek", source: "ai", status: "open" });
+    expect(res.body.plan).toMatchObject({ title: "Saturday dinner", source: "ai", status: "open" });
     expect(res.body.plan.sourceMessageIds).toHaveLength(2);
 
     const input = extractPlan.mock.calls[0][0];
@@ -171,7 +221,7 @@ describe("AI plan detection", () => {
     await owner.agent.post(`/api/groups/${group._id}/plans/detect`).expect(200);
     const again = await owner.agent.post(`/api/groups/${group._id}/plans/detect`).expect(200);
     expect(again.body.plan).toBeNull();
-    expect(extractPlan.mock.calls[1][0].openPlans.map((p) => p.title)).toEqual(["Saturday trek"]);
+    expect(extractPlan.mock.calls[1][0].openPlans.map((p) => p.title)).toEqual(["Saturday dinner"]);
   });
 
   it("returns no card when nothing is being planned", async () => {
@@ -195,7 +245,7 @@ describe("AI plan detection", () => {
     expect(extractPlan).toHaveBeenCalledTimes(1);
     await vi.waitFor(async () => {
       const list = await owner.agent.get(`/api/groups/${group._id}/plans`).expect(200);
-      expect(list.body.map((p) => p.title)).toEqual(["Saturday trek"]);
+      expect(list.body.map((p) => p.title)).toEqual(["Saturday dinner"]);
     });
   });
 

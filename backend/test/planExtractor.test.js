@@ -9,8 +9,8 @@ const reply = (obj, stop_reason = "end_turn") => ({
 const detected = {
   plan_detected: true,
   confidence: 0.9,
-  title: "Saturday trek",
-  where: "Yelagiri",
+  title: "Saturday dinner",
+  where: "Sector 18 food court",
   when_text: "Sat 7am",
   starts_at: "2026-11-07T07:00:00+05:30",
   time_options: [],
@@ -32,7 +32,7 @@ afterEach(() => __setClient(undefined));
 describe("normalize", () => {
   it("maps a confident detection to Plan fields", () => {
     const plan = normalize(detected, 0.7);
-    expect(plan).toMatchObject({ title: "Saturday trek", where: "Yelagiri", whenText: "Sat 7am" });
+    expect(plan).toMatchObject({ title: "Saturday dinner", where: "Sector 18 food court", whenText: "Sat 7am" });
     expect(plan.startsAt.toISOString()).toBe("2026-11-07T01:30:00.000Z");
   });
 
@@ -72,7 +72,7 @@ describe("extractPlan", () => {
       openPlans: [{ title: "Movie night", whenText: "Fri" }],
       now: new Date("2026-11-03T10:02:00Z"),
     });
-    expect(plan.title).toBe("Saturday trek");
+    expect(plan.title).toBe("Saturday dinner");
 
     const req = create.mock.calls[0][0];
     expect(req.model).toBe("claude-opus-5-5");

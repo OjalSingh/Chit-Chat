@@ -35,9 +35,15 @@ const planSchema = new mongoose.Schema(
             h1: { type: Boolean, default: false },
             m5: { type: Boolean, default: false },
         },
+        // The game this plan is for, if any: a link, a room code, or both.
+        game: {
+            name: { type: String, trim: true, maxlength: 60 },
+            url: { type: String, trim: true, maxlength: 300 },
+            code: { type: String, trim: true, maxlength: 30 },
+        },
         timeOptions: [timeOptionSchema],
         rsvps: [rsvpSchema],
-        status: { type: String, enum: ["open", "cancelled"], default: "open" },
+        status: { type: String, enum: ["open", "cancelled", "done"], default: "open" }, // "done" once a session is logged for it
         createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // null when the AI made it
         source: { type: String, enum: ["member", "ai"], required: true },
         // Messages the AI read when it proposed this plan, for auditing.

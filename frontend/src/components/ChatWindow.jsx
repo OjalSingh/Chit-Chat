@@ -20,6 +20,7 @@ function ChatWindow({
     onPlanChange,
     onFindPlan,
     onCreatePlan,
+    onOpenHistory,
     planNotice,
 }) {
     const senderIdOf = (message) => message.senderId?._id ?? message.senderId;
@@ -53,6 +54,7 @@ function ChatWindow({
                             {planNotice && <small>{planNotice}</small>}
                             <button className="small lime" onClick={() => setCreatingPlan(true)}>+ New plan</button>
                             <button className="small blue" onClick={onFindPlan}>Plan from chat</button>
+                            <button className="small pink" onClick={onOpenHistory}>History</button>
                             <button className="small plain" onClick={onLeaveGroup}>Leave</button>
                         </div>
                     </>
@@ -80,6 +82,7 @@ function ChatWindow({
                             key={plan._id}
                             plan={plan}
                             members={selectedGroup.members}
+                            group={selectedGroup}
                             currentUser={currentUser}
                             onChange={onPlanChange}
                         />

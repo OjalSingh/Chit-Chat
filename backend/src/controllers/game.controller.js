@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Group from "../models/Group.js";
 import GameResult from "../models/GameResult.js";
 import { io, groupRoom } from "../lib/socket.js";
+import { CATALOG } from "../games/catalog.js";
 import {
     MAX_GUESSES,
     answerFor,
@@ -42,6 +43,9 @@ const viewOf = (result, dayKey) => {
         finished: done,
     };
 };
+
+/* GET /api/games/catalog: link games a plan can point at */
+export const catalog = (_req, res) => res.status(200).json(CATALOG);
 
 /* GET /api/games */
 export const listGames = (_req, res) => res.status(200).json(GAMES);

@@ -6,11 +6,23 @@ import Avatar from "./Avatar";
  * Chat.jsx owns the data; this component only renders it and
  * reports clicks back through the callbacks.
  */
-function GroupList({ groups, friends, selectedGroup, onSelectGroup, onCreateGroup }) {
+function GroupList({ groups, invites = [], friends, selectedGroup, onSelectGroup, onCreateGroup, onAccept, onDecline }) {
     const [creating, setCreating] = useState(false);
     const [name, setName] = useState("");
     const [picked, setPicked] = useState([]);
     const [error, setError] = useState("");
+    const [busyInvite, setBusyInvite] = useState("");
+
+    const answer = async (fn, id) => {
+        setBusyInvite(id);
+        try {
+            await fn(id);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setBusyInvite("");
+        }
+    };
 
     const toggle = (id) =>
         setPicked((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
@@ -34,6 +46,26 @@ function GroupList({ groups, friends, selectedGroup, onSelectGroup, onCreateGrou
         <div style={{ display: "grid", gap: "10px" }}>
             <h2>Rooms</h2>
 
+            {invites.map((invite) => (
+                <div key={invite._id} className="invite-row">
+                    <div>
+                        <b>{invite.name}</b>
+                        <br />
+                        <small>
+                            {invite.invitedBy} invited you · {invite.memberCount} in so far
+                        </small>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                        <button className="small lime" disabled={busyInvite === invite._id} onClick={() => answer(onAccept, invite._id)}>
+                            Join
+                        </button>
+                        <button className="small plain" disabled={busyInvite === invite._id} onClick={() => answer(onDecline, invite._id)}>
+                            No thanks
+                        </button>
+                    </div>
+                </div>
+            ))}
+
             {groups.length === 0 ? (
                 <p className="muted">No rooms yet. Start one with your crew.</p>
             ) : (
@@ -48,7 +80,10 @@ function GroupList({ groups, friends, selectedGroup, onSelectGroup, onCreateGrou
                             <Avatar name={group.name} />
                             <div className="grow">
                                 <div className="name">{group.name}</div>
-                                <small>{group.members.length} members</small>
+                                <small>
+                                    {group.members.length} members
+                                    {group.invited?.length > 0 && ` · ${group.invited.length} invited`}
+                                </small>
                             </div>
                         </div>
                     );
@@ -64,7 +99,7 @@ function GroupList({ groups, friends, selectedGroup, onSelectGroup, onCreateGrou
                         placeholder="Room name"
                         onChange={(e) => setName(e.target.value)}
                     />
-                    <small>Who's coming?</small>
+                    <small>Who do you want to ask? They choose whether to join.</small>
                     {friends.length === 0 && <p className="muted">Add some friends first.</p>}
                     {friends.map((friend) => (
                         <label key={friend._id} className="check">

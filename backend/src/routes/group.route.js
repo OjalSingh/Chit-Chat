@@ -8,11 +8,15 @@ import {
     addMembers,
     removeMember,
     renameGroup,
+    getMyInvites,
+    acceptInvite,
+    declineInvite,
 } from "../controllers/group.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
 import { validateObjectId } from "../middleware/validateObjectId.middleware.js";
 import { listPlans, createPlan, detectNow } from "../controllers/plan.controller.js";
+import { logSession, listSessions } from "../controllers/session.controller.js";
 
 const router = express.Router();
 
@@ -24,6 +28,10 @@ router.get("/", getMyGroups);
 router.param("groupId", (req, res, next) => validateObjectId("groupId")(req, res, next));
 router.param("userId", (req, res, next) => validateObjectId("userId")(req, res, next));
 
+router.get("/invites", getMyInvites);
+router.post("/:groupId/accept", acceptInvite);
+router.post("/:groupId/decline", declineInvite);
+
 router.get("/:groupId", getGroup);
 router.patch("/:groupId", renameGroup);
 router.get("/:groupId/messages", getGroupMessages);
@@ -34,5 +42,8 @@ router.delete("/:groupId/members/:userId", removeMember);
 router.get("/:groupId/plans", listPlans);
 router.post("/:groupId/plans", createPlan);
 router.post("/:groupId/plans/detect", detectNow);
+
+router.get("/:groupId/sessions", listSessions);
+router.post("/:groupId/sessions", logSession);
 
 export default router;

@@ -48,14 +48,11 @@ describe("Socket.IO realtime layer", () => {
 
 describe("group realtime events", () => {
   it("delivers group messages to other online members but not the sender or outsiders", async () => {
-    const { ownerWithFriends } = await import("./helpers.js");
+    const { ownerWithFriends, createGroupAndJoin } = await import("./helpers.js");
     const { owner, friends } = await ownerWithFriends(1);
     const outsider = await signupUser();
 
-    const created = await owner.agent
-      .post("/api/groups")
-      .send({ name: "live", memberIds: [friends[0].user._id] })
-      .expect(201);
+    const created = { body: await createGroupAndJoin(owner, friends, "live") };
     const groupId = created.body._id;
 
     // Connect after the group exists: the server joins rooms on connect.
@@ -82,19 +79,21 @@ describe("group realtime events", () => {
     expect(leaked).toEqual([]);
   });
 
-  it("subscribes an online friend to a new group immediately", async () => {
-    const { ownerWithFriends } = await import("./helpers.js");
+  it("tells an online friend about an invite, and subscribes them once they accept", async () => {
+    const { ownerWithFriends, createGroupAndJoin } = await import("./helpers.js");
     const { owner, friends } = await ownerWithFriends(1);
 
     const friendSocket = open(friends[0].cookie);
     await once(friendSocket, "groupsJoined");
 
-    const added = once(friendSocket, "groupAdded");
+    const invited = once(friendSocket, "groupInvite");
     const created = await owner.agent
       .post("/api/groups")
       .send({ name: "instant", memberIds: [friends[0].user._id] })
       .expect(201);
-    expect((await added)._id).toBe(created.body._id);
+    expect(await invited).toMatchObject({ _id: created.body._id, name: "instant" });
+
+    await friends[0].agent.post(`/api/groups/${created.body._id}/accept`).expect(200);
 
     const incoming = once(friendSocket, "newGroupMessage");
     await owner.agent.post(`/api/groups/${created.body._id}/messages`).send({ text: "first!" }).expect(201);
@@ -104,11 +103,9 @@ describe("group realtime events", () => {
 
 describe("plan realtime events", () => {
   it("pushes new plans and RSVP updates to every member", async () => {
-    const { ownerWithFriends } = await import("./helpers.js");
+    const { ownerWithFriends, createGroupAndJoin } = await import("./helpers.js");
     const { owner, friends } = await ownerWithFriends(1);
-    const group = (
-      await owner.agent.post("/api/groups").send({ name: "p", memberIds: [friends[0].user._id] }).expect(201)
-    ).body;
+    const group = await createGroupAndJoin(owner, friends, "p");
 
     const memberSocket = open(friends[0].cookie);
     await once(memberSocket, "groupsJoined");

@@ -29,3 +29,9 @@ export const leaveGroup = async (groupId, userId) => {
     const res = await client.delete(`/groups/${groupId}/members/${userId}`);
     return res.data;
 };
+
+export const getInvites = async () => (await client.get("/groups/invites")).data;
+
+export const acceptInvite = async (groupId) => (await client.post(`/groups/${groupId}/accept`)).data;
+
+export const declineInvite = async (groupId) => (await client.post(`/groups/${groupId}/decline`)).data;

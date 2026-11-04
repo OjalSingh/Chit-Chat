@@ -8,7 +8,7 @@
   { "id": "match", "expect": true, "chat": [
     ["rohan", "cricket on the ground sunday morning?"], ["dev", "need 10 people"], ["kabir", "I'm in, bringing the bat"], ["arjun", "count me, 6:30?"] ] },
   { "id": "small-talk", "expect": false, "chat": [
-    ["meera", "did you see the new hostel rules"], ["priya", "yeah no guests after 10 lol"], ["meera", "so strict"], ["arjun", "classic"] ] },
+    ["meera", "did you see the new office rules"], ["priya", "yeah no laptops after 10 lol"], ["meera", "so strict"], ["arjun", "classic"] ] },
   { "id": "vague-wish", "expect": false, "chat": [
     ["sana", "we should go to goa sometime"], ["dev", "fr"], ["sana", "one day"], ["kabir", "after placements maybe"] ] },
   { "id": "past-event", "expect": false, "chat": [
