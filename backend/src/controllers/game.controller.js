@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Group from "../models/Group.js";
 import GameResult from "../models/GameResult.js";
+import FlapScore, { FLAP_MAX_SCORE } from "../models/FlapScore.js";
 import { io, groupRoom } from "../lib/socket.js";
 import { CATALOG } from "../games/catalog.js";
 import {
@@ -17,6 +18,11 @@ export const GAMES = [
         key: "wordle",
         name: "Word of the day",
         blurb: "Guess the five-letter word in six tries. Same word for everyone, every day.",
+    },
+    {
+        key: "flap",
+        name: "Tap to flap",
+        blurb: "Tap to flap through the pipes. Beat your crew's best.",
     },
 ];
 
@@ -186,4 +192,47 @@ export const leaderboard = handle("wordleLeaderboard", async (req, res) => {
     });
 
     res.status(200).json({ dayKey, iFinishedToday, rows });
+});
+
+/*
+ * POST /api/games/flap/score
+ * Body: { score }   A whole number from 0 to 500. Keeps the player's best.
+ */
+export const flapScore = handle("flapScore", async (req, res) => {
+    const { score } = req.body;
+    if (!Number.isInteger(score) || score < 0 || score > FLAP_MAX_SCORE) {
+        return res.status(400).json({ message: `score must be a whole number from 0 to ${FLAP_MAX_SCORE}` });
+    }
+    const before = await FlapScore.findOneAndUpdate(
+        { userId: req.user._id },
+        { $max: { best: score }, $inc: { plays: 1 }, $set: { lastPlayedAt: new Date() } },
+        { upsert: true, new: false }
+    );
+    const best = Math.max(before?.best ?? 0, score);
+    res.status(200).json({ best, plays: (before?.plays ?? 0) + 1, newBest: score > (before?.best ?? 0) });
+});
+
+/*
+ * GET /api/games/flap/leaderboard/:groupId
+ * Everyone in the group by best score. Players who haven't played show 0.
+ */
+export const flapLeaderboard = handle("flapLeaderboard", async (req, res) => {
+    const { groupId } = req.params;
+    if (!mongoose.isValidObjectId(groupId)) return res.status(400).json({ message: "Invalid groupId" });
+    const group = await Group.findById(groupId).populate("members", "username");
+    if (!group) return res.status(404).json({ message: "Group not found" });
+    if (!group.hasMember(req.user._id)) {
+        return res.status(403).json({ message: "You are not a member of this group" });
+    }
+    const scores = await FlapScore.find({ userId: { $in: group.members.map((m) => m._id) } });
+    const byUser = new Map(scores.map((s) => [s.userId.toString(), s]));
+    const rows = group.members
+        .map((m) => ({
+            userId: m._id,
+            username: m.username,
+            best: byUser.get(m._id.toString())?.best ?? 0,
+            plays: byUser.get(m._id.toString())?.plays ?? 0,
+        }))
+        .sort((a, b) => b.best - a.best || a.username.localeCompare(b.username));
+    res.status(200).json({ rows });
 });

@@ -10,3 +10,7 @@ export const getWordleStats = async () => (await client.get("/games/wordle/stats
 
 export const getWordleLeaderboard = async (groupId) =>
     (await client.get(`/games/wordle/leaderboard/${groupId}`)).data;
+
+export const postFlapScore = async (score) => (await client.post("/games/flap/score", { score })).data;
+
+export const getFlapLeaderboard = async (groupId) => (await client.get(`/games/flap/leaderboard/${groupId}`)).data;

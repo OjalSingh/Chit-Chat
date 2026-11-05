@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-export const THEMES = ["sky", "night"];
+export const THEMES = ["sky", "night", "flap", "pet"];
+const LABELS = { sky: "Sky", night: "Night", flap: "Flap", pet: "Pet" };
 
 export function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
@@ -21,7 +22,11 @@ export function initTheme() {
     document.documentElement.dataset.theme = THEMES.includes(saved) ? saved : "sky";
 }
 
-/* Two backgrounds: a daytime sky and a night flight. */
+/*
+ * Four looks: a daytime sky, a night flight, "Flap" (pixel sky and green
+ * pipes, in the spirit of old one-tap arcade games) and "Pet" (a warm
+ * cartoon living room). They only change colours, shapes and art.
+ */
 function ThemeToggle() {
     const [theme, setTheme] = useState(document.documentElement.dataset.theme || "sky");
 
@@ -31,23 +36,12 @@ function ThemeToggle() {
     };
 
     return (
-        <div className="theme-toggle" role="group" aria-label="Background">
-            <button
-                type="button"
-                className={theme === "sky" ? "on" : ""}
-                aria-pressed={theme === "sky"}
-                onClick={() => pick("sky")}
-            >
-                Sky
-            </button>
-            <button
-                type="button"
-                className={theme === "night" ? "on" : ""}
-                aria-pressed={theme === "night"}
-                onClick={() => pick("night")}
-            >
-                Night
-            </button>
+        <div className="theme-toggle" role="group" aria-label="Look">
+            {THEMES.map((t) => (
+                <button key={t} type="button" className={theme === t ? "on" : ""} aria-pressed={theme === t} onClick={() => pick(t)}>
+                    {LABELS[t]}
+                </button>
+            ))}
         </div>
     );
 }

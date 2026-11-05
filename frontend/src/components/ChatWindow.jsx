@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import PlanCard from "./PlanCard";
-import PaperPlane from "./PaperPlane";
+import Mascot from "./Mascot";
 import NewPlanForm from "./NewPlanForm";
 
 /*
@@ -22,6 +22,7 @@ function ChatWindow({
     onCreatePlan,
     onOpenHistory,
     planNotice,
+    typingNames = [],
 }) {
     const senderIdOf = (message) => message.senderId?._id ?? message.senderId;
 
@@ -39,7 +40,7 @@ function ChatWindow({
     const bottom = useRef(null);
     useEffect(() => {
         bottom.current?.scrollIntoView({ block: "end" });
-    }, [messages.length, selectedUser?._id, selectedGroup?._id]);
+    }, [messages.length, typingNames.length, selectedUser?._id, selectedGroup?._id]);
 
     return (
         <>
@@ -93,7 +94,7 @@ function ChatWindow({
             <div className="scroll">
                 {!hasChat ? (
                     <div className="empty">
-                        <PaperPlane size={72} />
+                        <Mascot name={currentUser?.username} />
                         <h3>Ready for take-off</h3>
                         <p className="muted">Pick someone from your crew or a room and send your first note.</p>
                     </div>
@@ -111,6 +112,16 @@ function ChatWindow({
                                     </div>
                                 );
                             })
+                        )}
+                        {typingNames.length > 0 && (
+                            <div className="typing" role="status" aria-live="polite">
+                                <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>
+                                <small>
+                                    {typingNames.length === 1
+                                        ? `${typingNames[0]} is typing`
+                                        : `${typingNames.slice(0, 2).join(" and ")} are typing`}
+                                </small>
+                            </div>
                         )}
                         <div ref={bottom} />
                     </>

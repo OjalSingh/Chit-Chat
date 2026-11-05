@@ -16,6 +16,7 @@ import FriendRequests from "../components/FriendRequests";
 import PaperPlane from "../components/PaperPlane";
 import ThemeToggle from "../components/ThemeToggle";
 import WordleGame from "../components/WordleGame";
+import FlapGame from "../components/FlapGame";
 import SessionHistory from "../components/SessionHistory";
 
 
@@ -54,6 +55,8 @@ function Chat() {
     const [showHistory, setShowHistory] = useState(false);
     // Reminders pushed by the server ("Game night starts in 5 minutes").
     const [reminders, setReminders] = useState([]);
+    // People typing in the open conversation: { [userId]: { name, until } }.
+    const [typers, setTypers] = useState({});
     const [messages, setMessages] = useState([]);
 
     const [loading, setLoading] = useState(true);
@@ -248,6 +251,29 @@ function Chat() {
             setLoading(false);
         }
     };
+
+    // "Is typing" pings for the open conversation. Each one lasts 3 seconds.
+    useEffect(() => {
+        setTypers({});
+        const onTyping = (event) => {
+            const inThisChat = selectedGroup
+                ? event.groupId === selectedGroup._id
+                : !event.groupId && selectedUser && event.userId === selectedUser._id;
+            if (!inThisChat) return;
+            setTypers((prev) => ({ ...prev, [event.userId]: { name: event.username, until: Date.now() + 3000 } }));
+        };
+        socket.on("typing", onTyping);
+        const sweep = setInterval(() => {
+            setTypers((prev) => {
+                const live = Object.entries(prev).filter(([, t]) => t.until > Date.now());
+                return live.length === Object.keys(prev).length ? prev : Object.fromEntries(live);
+            });
+        }, 1000);
+        return () => {
+            socket.off("typing", onTyping);
+            clearInterval(sweep);
+        };
+    }, [selectedGroup?._id, selectedUser?._id]);
 
     const loadGroups = async () => {
         try {
@@ -497,6 +523,16 @@ function Chat() {
                                         <small>Daily. Compare with your crew.</small>
                                     </div>
                                 </div>
+                                <div
+                                    className={game === "flap" ? "row selected" : "row"}
+                                    onClick={() => setGame("flap")}
+                                >
+                                    <span className="avatar" style={{ background: "#f8d838" }}>F</span>
+                                    <div className="grow">
+                                        <div className="name">Tap to flap</div>
+                                        <small>Arcade. Beat your crew's best.</small>
+                                    </div>
+                                </div>
                                 <p className="muted">More games are coming.</p>
                             </div>
                         )}
@@ -512,6 +548,8 @@ function Chat() {
                 <section className="convo panel">
                     {game === "wordle" ? (
                         <WordleGame groups={groups} currentUser={currentUser} />
+                    ) : game === "flap" ? (
+                        <FlapGame groups={groups} currentUser={currentUser} />
                     ) : showHistory && selectedGroup ? (
                         <SessionHistory
                             group={selectedGroup}
@@ -533,11 +571,15 @@ function Chat() {
                                 onCreatePlan={handleCreatePlan}
                                 onOpenHistory={() => setShowHistory(true)}
                                 planNotice={planNotice}
+                                typingNames={Object.values(typers).map((t) => t.name)}
                             />
                             <MessageInput
                                 value={newMessage}
                                 onChange={setNewMessage}
                                 onSend={handleSendMessage}
+                                onTyping={() =>
+                                    socket.emit("typing", selectedGroup ? { groupId: selectedGroup._id } : { to: selectedUser?._id })
+                                }
                                 disabled={!hasChat}
                             />
 

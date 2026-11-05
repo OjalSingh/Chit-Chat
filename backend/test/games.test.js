@@ -80,7 +80,7 @@ describe("wordle API", () => {
   it("needs a login and lists the game", async () => {
     const anon = await signupUser();
     const list = await anon.agent.get("/api/games").expect(200);
-    expect(list.body.map((g) => g.key)).toEqual(["wordle"]);
+    expect(list.body.map((g) => g.key)).toEqual(["wordle", "flap"]);
   });
 
   it("scores guesses on the server, hides the answer, and records a win", async () => {
@@ -166,5 +166,33 @@ describe("wordle API", () => {
     const outsider = await signupUser();
     await outsider.agent.get(`/api/games/wordle/leaderboard/${group._id}`).expect(403);
     await outsider.agent.get("/api/games/wordle/leaderboard/nope").expect(400);
+  });
+});
+
+describe("tap to flap scores", () => {
+  it("keeps each player's best, rejects silly scores, and ranks a room", async () => {
+    const { owner, friends } = await ownerWithFriends(2);
+    const group = await createGroupAndJoin(owner, friends);
+
+    let res = await owner.agent.post("/api/games/flap/score").send({ score: 7 }).expect(200);
+    expect(res.body).toEqual({ best: 7, plays: 1, newBest: true });
+    res = await owner.agent.post("/api/games/flap/score").send({ score: 3 }).expect(200);
+    expect(res.body).toEqual({ best: 7, plays: 2, newBest: false });
+    await friends[0].agent.post("/api/games/flap/score").send({ score: 12 }).expect(200);
+
+    for (const bad of [-1, 501, 2.5, "9", null, undefined]) {
+      await owner.agent.post("/api/games/flap/score").send({ score: bad }).expect(400);
+    }
+
+    const board = (await owner.agent.get(`/api/games/flap/leaderboard/${group._id}`).expect(200)).body;
+    expect(board.rows.map((r) => [r.userId, r.best])).toEqual([
+      [friends[0].user._id, 12],
+      [owner.user._id, 7],
+      [friends[1].user._id, 0],
+    ]);
+
+    const outsider = await signupUser();
+    await outsider.agent.get(`/api/games/flap/leaderboard/${group._id}`).expect(403);
+    await outsider.agent.get("/api/games/flap/leaderboard/nope").expect(400);
   });
 });

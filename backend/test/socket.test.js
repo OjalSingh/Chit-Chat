@@ -119,3 +119,43 @@ describe("plan realtime events", () => {
     expect((await updated).where).toBe("Gate 2");
   });
 });
+
+describe("typing pings", () => {
+  it("reach a friend or fellow room member, and nobody else", async () => {
+    const { ownerWithFriends, createGroupAndJoin } = await import("./helpers.js");
+    const { owner, friends } = await ownerWithFriends(2);
+    const outsider = await signupUser();
+    const group = await createGroupAndJoin(owner, friends, "typing");
+
+    const ownerSocket = open(owner.cookie);
+    const friendSocket = open(friends[0].cookie);
+    const otherFriendSocket = open(friends[1].cookie);
+    const outsiderSocket = open(outsider.cookie);
+    await Promise.all([ownerSocket, friendSocket, otherFriendSocket, outsiderSocket].map((s) => once(s, "groupsJoined")));
+
+    // room typing: the other members see it, the typist and outsiders don't
+    const seen = [];
+    ownerSocket.on("typing", () => seen.push("owner"));
+    outsiderSocket.on("typing", () => seen.push("outsider"));
+    const heard = once(friendSocket, "typing");
+    ownerSocket.emit("typing", { groupId: group._id });
+    expect(await heard).toMatchObject({ userId: owner.user._id, username: owner.user.username, groupId: group._id });
+
+    // direct typing: only the friend being typed to
+    await new Promise((r) => setTimeout(r, 1100)); // the one-a-second limit
+    const dm = once(friendSocket, "typing");
+    ownerSocket.emit("typing", { to: friends[0].user._id });
+    expect(await dm).toMatchObject({ userId: owner.user._id });
+
+    // a stranger can't ping someone they aren't friends with
+    await new Promise((r) => setTimeout(r, 1100));
+    outsiderSocket.emit("typing", { to: friends[1].user._id });
+    outsiderSocket.emit("typing", { groupId: group._id });
+    await new Promise((r) => setTimeout(r, 150));
+    expect(seen).toEqual([]);
+    const leaked = [];
+    otherFriendSocket.on("typing", () => leaked.push("x"));
+    await new Promise((r) => setTimeout(r, 100));
+    expect(leaked).toEqual([]);
+  });
+});
