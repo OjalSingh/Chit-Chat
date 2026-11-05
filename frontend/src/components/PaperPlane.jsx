@@ -1,7 +1,6 @@
 /*
- * The app mark. Pure SVG so it takes colours from the theme.
- * Sky and Night show a folded paper plane; Flap shows a pixel bird;
- * Pet shows a cartoon cat face. CSS picks which one is visible, so the
+ * The app mark. Pure SVG. Rails shows a spray can, Lawn a sprout, Flap a
+ * pixel bird and Pet a cartoon cat face. CSS picks which one is visible, so the
  * mark changes the moment the theme does. `fixed` always draws the plane
  * (used for the send arrow).
  */
@@ -12,6 +11,24 @@ function PaperPlane({ size = 32, className = "", fixed = false }) {
                 <path d="M6 30 L58 6 L40 58 L30 38 Z" fill="var(--paper)" stroke="var(--ink)" strokeWidth="3.5" strokeLinejoin="round" />
                 <path d="M30 38 L58 6" fill="none" stroke="var(--ink)" strokeWidth="3.5" strokeLinejoin="round" />
                 <path d="M30 38 L28 52 L40 58 Z" fill="var(--pink)" stroke="var(--ink)" strokeWidth="3.5" strokeLinejoin="round" />
+            </svg>
+            {/* Rails: a spray can with an orange cap. */}
+            <svg className="m-can" width={size} height={size} viewBox="0 0 64 64">
+                <rect x="22" y="20" width="22" height="38" rx="4" fill="#35d07f" stroke="#1b2340" strokeWidth="3.5" />
+                <rect x="22" y="30" width="22" height="10" fill="#fff" stroke="#1b2340" strokeWidth="3.5" />
+                <path d="M24 20 V12 H42 V20" fill="#ff9f1c" stroke="#1b2340" strokeWidth="3.5" strokeLinejoin="round" />
+                <rect x="30" y="4" width="6" height="8" fill="#1b2340" />
+                <path d="M12 8 H18 M10 14 H16 M48 8 H54 M50 14 H56" stroke="#ff4f8b" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+            {/* Lawn: a sprout with a pod head and a leaf. */}
+            <svg className="m-sprout" width={size} height={size} viewBox="0 0 64 64">
+                <path d="M32 60 V36" stroke="#07170e" strokeWidth="9" strokeLinecap="round" />
+                <path d="M32 60 V36" stroke="#4fae52" strokeWidth="4" strokeLinecap="round" />
+                <path d="M32 50 Q14 50 12 38 Q28 36 32 50Z" fill="#6fd36b" stroke="#07170e" strokeWidth="3" strokeLinejoin="round" />
+                <circle cx="30" cy="24" r="16" fill="#8cf070" stroke="#07170e" strokeWidth="3.5" />
+                <rect x="38" y="20" width="18" height="12" rx="5" fill="#6fd36b" stroke="#07170e" strokeWidth="3.5" />
+                <circle cx="27" cy="20" r="3.4" fill="#fff" stroke="#07170e" strokeWidth="2" />
+                <circle cx="28" cy="20.5" r="1.5" fill="#07170e" />
             </svg>
             {/* A little pixel bird on a 16x16 grid: body, belly, wing, eye, beak. */}
             <svg className="m-bird" width={size} height={size} viewBox="0 0 16 16" shapeRendering="crispEdges">

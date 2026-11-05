@@ -15,6 +15,8 @@ import SearchUsers from "../components/SearchUsers";
 import FriendRequests from "../components/FriendRequests";
 import PaperPlane from "../components/PaperPlane";
 import ThemeToggle from "../components/ThemeToggle";
+import SoundToggle from "../components/SoundToggle";
+import { play, buzz } from "../lib/sound";
 import WordleGame from "../components/WordleGame";
 import FlapGame from "../components/FlapGame";
 import SessionHistory from "../components/SessionHistory";
@@ -80,6 +82,8 @@ function Chat() {
      */
     useEffect(() => {
         const handleGroupMessage = (message) => {
+            play("receive");
+            buzz(15);
             if (selectedGroup && message.groupId === selectedGroup._id) {
                 setMessages((prev) => [...prev, message]);
             }
@@ -147,6 +151,8 @@ function Chat() {
      */
     useEffect(() => {
     const handleNewMessage = (message) => {
+        play("receive");
+        buzz(15);
 
         if (!selectedUser) return;
 
@@ -459,6 +465,7 @@ function Chat() {
                 </div>
                 <div className="actions">
                     {currentUser && <span className="who">{currentUser.username}</span>}
+                    <SoundToggle />
                     <ThemeToggle />
                     <button className="small plain" onClick={handleLogout}>
                         Log out

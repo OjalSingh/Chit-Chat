@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { postFlapScore, getFlapLeaderboard } from "../api/games";
+import { play } from "../lib/sound";
 
 const W = 360;
 const H = 520;
@@ -95,6 +96,7 @@ function FlapGame({ groups, currentUser }) {
         if (phase === "over") return;
         if (phase === "ready") setPhase("playing");
         g.vy = FLAP;
+        play("flap");
     }, [phase]);
 
     // Keyboard.
@@ -206,6 +208,7 @@ function FlapGame({ groups, currentUser }) {
                         if (!p.scored && p.x + PIPE_W < BIRD.x) {
                             p.scored = true;
                             g.score += 1;
+                            play("point");
                             setScore(g.score);
                         }
                         const inX = BIRD.x + BIRD.size - 4 > p.x && BIRD.x + 4 < p.x + PIPE_W;
@@ -214,6 +217,7 @@ function FlapGame({ groups, currentUser }) {
                     }
                     if (dead) {
                         g.phase = "over";
+                        play("hit");
                         g.y = Math.min(g.y, H - GROUND - BIRD.size);
                         finish(g.score);
                     }
