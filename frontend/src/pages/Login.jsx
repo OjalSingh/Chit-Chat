@@ -5,6 +5,9 @@ import { useNavigate, Link } from "react-router-dom";
 import { login } from "../api/auth";
 import { socket } from "../api/socket";
 
+// The design system and prototypes page. Set VITE_DESIGN_URL to point somewhere else.
+const DESIGN_URL = import.meta.env.VITE_DESIGN_URL || "https://claude.ai/artifact/K2qNVyjyRUqorCp6yngkpf";
+
 function Login() {
     const navigate = useNavigate();
 
@@ -93,6 +96,9 @@ function Login() {
                 </form>
                 <p className="switch">
                     New here? <Link to="/signup">Make an account</Link>
+                </p>
+                <p className="switch">
+                    <a href={DESIGN_URL} target="_blank" rel="noopener noreferrer">See the Chit-Chat Arcade design</a>
                 </p>
             </div>
         </div>
