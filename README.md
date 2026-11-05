@@ -9,6 +9,8 @@
   <img src="docs/ui-lawn.png" width="49%" alt="Lawn look: a night garden" />
 </p>
 
+**Design:** the look, characters, components and clickable prototypes are on the [Chit-Chat Arcade design page](https://claude.ai/artifact/K2qNVyjyRUqorCp6yngkpf). It marks what is built in the app and what is still a prototype.
+
 ## What you can do
 
 - **Chat** one to one or in rooms, with live delivery and online presence.
