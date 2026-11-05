@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { play } from "../lib/sound";
 
 const LINES = {
     idle: "Pick a friend and say hi.",
@@ -32,6 +33,7 @@ function Mascot({ name, size = 120 }) {
         pokes.current += 1;
         setHop((n) => n + 1);
         const next = pokes.current % 5 === 0 ? "wow" : "happy";
+        play(next === "wow" ? "party" : "happy");
         setMood(next);
         clearTimeout(timer.current);
         timer.current = setTimeout(() => setMood("idle"), 1800);

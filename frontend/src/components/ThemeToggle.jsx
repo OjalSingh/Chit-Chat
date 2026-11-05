@@ -1,7 +1,9 @@
 import { useState } from "react";
 
-export const THEMES = ["sky", "night", "flap", "pet"];
-const LABELS = { sky: "Sky", night: "Night", flap: "Flap", pet: "Pet" };
+export const THEMES = ["rails", "lawn", "flap", "pet"];
+const LABELS = { rails: "Rails", lawn: "Lawn", flap: "Flap", pet: "Pet" };
+// Saved choices from before the rename keep working.
+const LEGACY = { sky: "rails", night: "lawn" };
 
 export function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
@@ -19,16 +21,18 @@ export function initTheme() {
     } catch {
         /* ignore */
     }
-    document.documentElement.dataset.theme = THEMES.includes(saved) ? saved : "sky";
+    const theme = LEGACY[saved] ?? saved;
+    document.documentElement.dataset.theme = THEMES.includes(theme) ? theme : "rails";
 }
 
 /*
- * Four looks: a daytime sky, a night flight, "Flap" (pixel sky and green
- * pipes, in the spirit of old one-tap arcade games) and "Pet" (a warm
- * cartoon living room). They only change colours, shapes and art.
+ * Four looks: "Rails" (a bright train yard, in the spirit of endless
+ * runner games), "Lawn" (a night garden), "Flap" (pixel sky and green
+ * pipes) and "Pet" (a warm cartoon room). Original art; they only change
+ * colours, shapes and backgrounds.
  */
 function ThemeToggle() {
-    const [theme, setTheme] = useState(document.documentElement.dataset.theme || "sky");
+    const [theme, setTheme] = useState(document.documentElement.dataset.theme || "rails");
 
     const pick = (t) => {
         applyTheme(t);

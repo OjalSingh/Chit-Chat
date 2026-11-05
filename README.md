@@ -5,8 +5,8 @@
 > **A group-chat app for people who actually want to meet up: chat in rooms, turn the chatter into live plans with reminders and a call link, then play daily games and compare scores. Built on a hybrid REST + WebSocket backend.**
 
 <p align="center">
-  <img src="docs/ui-sky.png" width="49%" alt="Dashboard, Sky background" />
-  <img src="docs/ui-night.png" width="49%" alt="Dashboard, Night background" />
+  <img src="docs/ui-rails.png" width="49%" alt="Rails look: a bright train yard" />
+  <img src="docs/ui-lawn.png" width="49%" alt="Lawn look: a night garden" />
 </p>
 
 ## What you can do
@@ -16,7 +16,8 @@
 - **Play together.** Pick a game on the plan (skribbl.io, Gartic Phone, Codenames, Among Us, Jackbox and more, or your own link). The ticket carries a Play button or a room code next to the call link. Chit-Chat doesn't host these games; it gets the group into them without the planning.
 - **Keep the record.** After playing, press "We played" to log who was there, who won, a note and a screenshot of the scoreboard. Each room has a game history: who plays most, what you play, what's next.
 - **Daily game.** Word of the day is built in, with streaks, averages and a room leaderboard that never spoils the answer.
-- **Pick a look.** Two backgrounds (Sky and Night) in a paper-plane, Y2K style, with a layout that collapses to one column on phones.
+- **Pick a look.** Four pixel-arcade looks: Rails (a train yard), Lawn (a night garden), Flap (pixel sky) and Pet (a warm room). The layout collapses to one column on phones.
+- **Small sounds.** Send, receive and game sounds are synthesized in the browser (no audio files). A speaker button in the top bar turns sound and phone buzz off.
 
 <p align="center">
   <img src="docs/plan-reminder.png" width="49%" alt="Plan ticket with game, call link and a reminder" />

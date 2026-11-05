@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import PaperPlane from "./PaperPlane";
+import { play, buzz } from "../lib/sound";
 
 /*
  * The composer. `onTyping` is called while the person types (at most once
@@ -12,6 +13,8 @@ function MessageInput({ value, onChange, onSend, onTyping, disabled }) {
     const send = () => {
         if (disabled || !value.trim()) return onSend();
         setFlying((n) => n + 1);
+        play("send");
+        buzz(8);
         onSend();
     };
 
